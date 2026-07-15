@@ -4,7 +4,7 @@ use axum::extract::{Path, State};
 use axum::response::Json;
 use serde::{Deserialize, Serialize};
 
-use flock_core::{Device, DeviceCredentials, DeviceId, DeviceMode};
+use flock_core::{Device, DeviceCredentials, DeviceId};
 
 use crate::error::{parse_device_id, ApiError};
 use crate::state::AppState;
@@ -35,7 +35,6 @@ pub async fn get_state(State(state): State<AppState>) -> Json<StateResponse> {
 pub struct DeviceRequest {
     pub name: String,
     pub host: String,
-    pub mode: DeviceMode,
     #[serde(default)]
     pub tags: Vec<String>,
     #[serde(default)]
@@ -52,7 +51,6 @@ pub async fn create_device(
         id: DeviceId::new(),
         name: body.name,
         host: body.host,
-        mode: body.mode,
         tags: body.tags,
         credentials: DeviceCredentials {
             password: body.password,
@@ -72,7 +70,6 @@ pub async fn update_device(
     let mut device = state.registry.get(&id).ok_or(ApiError::NotFound)?;
     device.name = body.name;
     device.host = body.host;
-    device.mode = body.mode;
     device.tags = body.tags;
     if let Some(password) = body.password {
         if !password.is_empty() {
@@ -124,24 +121,6 @@ pub async fn set_network(
 ) -> Result<Json<()>, ApiError> {
     let client = resolve(&state, &id).await?;
     client.set_network_settings(body).await?;
-    Ok(Json(()))
-}
-
-pub async fn get_encode(
-    State(state): State<AppState>,
-    Path(id): Path<String>,
-) -> Result<Json<flock_core::EncodeSettings>, ApiError> {
-    let client = resolve(&state, &id).await?;
-    Ok(Json(client.encode_settings().await?))
-}
-
-pub async fn set_encode(
-    State(state): State<AppState>,
-    Path(id): Path<String>,
-    Json(body): Json<flock_core::EncodeSettings>,
-) -> Result<Json<()>, ApiError> {
-    let client = resolve(&state, &id).await?;
-    client.set_encode_settings(body).await?;
     Ok(Json(()))
 }
 
@@ -201,4 +180,88 @@ pub async fn scan_discovery(
         .filter(|h| !known_hosts.contains(&h.host))
         .collect();
     Ok(Json(unadded))
+}
+
+// ---------- batch group settings ----------
+//
+// Applies a partial patch (only the keys the caller actually sent) to every
+// device in a tag-derived group, for one settings tab at a time. Each device
+// keeps whatever it already had for fields the patch didn't mention - the
+// merge happens against that device's own current settings, not a shared
+// template, so a batch edit never clobbers per-device values it wasn't
+// asked to change.
+
+#[derive(Serialize)]
+pub struct BatchOutcome {
+    pub device_id: DeviceId,
+    pub device_name: String,
+    pub ok: bool,
+    pub error: Option<String>,
+}
+
+pub async fn apply_group_settings(
+    State(state): State<AppState>,
+    Path((tag, tab)): Path<(String, String)>,
+    Json(patch): Json<serde_json::Value>,
+) -> Result<Json<Vec<BatchOutcome>>, ApiError> {
+    let members = state
+        .registry
+        .groups()
+        .get(&tag)
+        .cloned()
+        .unwrap_or_default();
+    let mut outcomes = Vec::with_capacity(members.len());
+    for id in members {
+        let Some(device) = state.registry.get(&id) else {
+            continue;
+        };
+        let client = state.provider.client_for(&device);
+        let result = apply_patch_for_tab(client.as_ref(), &tab, &patch).await;
+        outcomes.push(BatchOutcome {
+            device_id: id,
+            device_name: device.name,
+            ok: result.is_ok(),
+            error: result.err().map(|e| e.to_string()),
+        });
+    }
+    Ok(Json(outcomes))
+}
+
+async fn apply_patch_for_tab(
+    client: &dyn flock_core::DeviceClient,
+    tab: &str,
+    patch: &serde_json::Value,
+) -> anyhow::Result<()> {
+    match tab {
+        "network" => {
+            let mut current = serde_json::to_value(client.network_settings().await?)?;
+            merge_json(&mut current, patch);
+            client
+                .set_network_settings(serde_json::from_value(current)?)
+                .await
+        }
+        "decode" => {
+            let mut current = serde_json::to_value(client.decode_settings().await?)?;
+            merge_json(&mut current, patch);
+            client
+                .set_decode_settings(serde_json::from_value(current)?)
+                .await
+        }
+        "system" => {
+            let mut current = serde_json::to_value(client.system_settings().await?)?;
+            merge_json(&mut current, patch);
+            client
+                .set_system_settings(serde_json::from_value(current)?)
+                .await
+        }
+        other => anyhow::bail!("unknown settings tab: {other}"),
+    }
+}
+
+fn merge_json(current: &mut serde_json::Value, patch: &serde_json::Value) {
+    if let (Some(current_obj), Some(patch_obj)) = (current.as_object_mut(), patch.as_object()) {
+        for (key, value) in patch_obj {
+            current_obj.insert(key.clone(), value.clone());
+        }
+    }
 }

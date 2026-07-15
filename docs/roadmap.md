@@ -8,10 +8,13 @@
 - [x] Registry with JSON persistence and tag-derived groups (device in
       multiple groups)
 - [x] Three-pane web UI: left device list/groups, center preview + tabbed
-      settings (Status/Network/Encode/Decode/System, nothing nested), right
-      discovery/manual-add/remove/local app settings
+      settings (Status/Network/Decode/System — Play is decode-only, no
+      Encode tab — nothing nested), right discovery/manual-add/remove/local
+      app settings
 - [x] Every settings tab wired end-to-end against `device-mock`
 - [x] mDNS discovery scan (`_ndi._tcp.local.`) + manual add fallback
+- [x] Batch edit: select a group, apply a Network/Decode/System patch to
+      every member at once, blank fields left unchanged per-device
 - [x] Docker Compose (host networking) + CI (fmt/clippy/test) +
       docker-publish (ghcr.io)
 - [ ] Verified in-browser: grouping, tab round-trips, live WS updates,

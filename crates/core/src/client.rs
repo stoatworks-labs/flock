@@ -2,9 +2,7 @@ use async_trait::async_trait;
 use std::sync::Arc;
 
 use crate::device::Device;
-use crate::settings::{
-    DecodeSettings, DeviceStatus, EncodeSettings, NetworkSettings, SystemSettings,
-};
+use crate::settings::{DecodeSettings, DeviceStatus, NetworkSettings, SystemSettings};
 
 /// Everything flock can do to a single Play device. Implemented today by
 /// `flock-device-mock`; a real HTTP implementation talking to actual BirdUI/
@@ -16,9 +14,6 @@ pub trait DeviceClient: Send + Sync {
 
     async fn network_settings(&self) -> anyhow::Result<NetworkSettings>;
     async fn set_network_settings(&self, settings: NetworkSettings) -> anyhow::Result<()>;
-
-    async fn encode_settings(&self) -> anyhow::Result<EncodeSettings>;
-    async fn set_encode_settings(&self, settings: EncodeSettings) -> anyhow::Result<()>;
 
     async fn decode_settings(&self) -> anyhow::Result<DecodeSettings>;
     async fn set_decode_settings(&self, settings: DecodeSettings) -> anyhow::Result<()>;

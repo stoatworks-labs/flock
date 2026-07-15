@@ -99,14 +99,13 @@ impl Registry {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::device::{DeviceCredentials, DeviceMode};
+    use crate::device::DeviceCredentials;
 
     fn sample_device(name: &str, tags: &[&str]) -> Device {
         Device {
             id: DeviceId::new(),
             name: name.to_string(),
             host: "192.168.1.50".to_string(),
-            mode: DeviceMode::Encode,
             tags: tags.iter().map(|t| t.to_string()).collect(),
             credentials: DeviceCredentials::default(),
             discovered: false,

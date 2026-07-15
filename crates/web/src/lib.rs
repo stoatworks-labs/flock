@@ -32,10 +32,6 @@ pub fn app(state: AppState) -> Router {
             get(handlers::get_network).post(handlers::set_network),
         )
         .route(
-            "/api/devices/:id/encode",
-            get(handlers::get_encode).post(handlers::set_encode),
-        )
-        .route(
             "/api/devices/:id/decode",
             get(handlers::get_decode).post(handlers::set_decode),
         )
@@ -45,5 +41,9 @@ pub fn app(state: AppState) -> Router {
         )
         .route("/api/devices/:id/reboot", post(handlers::reboot_device))
         .route("/api/discovery/scan", get(handlers::scan_discovery))
+        .route(
+            "/api/groups/:tag/:tab",
+            post(handlers::apply_group_settings),
+        )
         .with_state(state)
 }

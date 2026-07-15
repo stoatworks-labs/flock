@@ -6,15 +6,18 @@
 `crosspoint-core`: it knows nothing about HTTP, mDNS, or how a device is
 actually reached.
 
-- **`Device`** — pure metadata: id, name, host, mode (Encode/Decode), tags,
-  credentials, and whether it was discovered or added manually.
+- **`Device`** — pure metadata: id, name, host, tags, credentials, and
+  whether it was discovered or added manually. Play is decode-only (NDI/SRT
+  source → HDMI out), so there is no per-device encode/decode mode.
 - **`Registry`** — an `Arc`-shareable, JSON-file-persisted map of devices.
   Groups are *derived*, not stored: `Registry::groups()` scans every
   device's `tags` and buckets ids by tag. That's what gives "one device, N
-  groups" for free — there's no group entity to keep in sync.
+  groups" for free — there's no group entity to keep in sync. It's also what
+  batch edit targets: applying a settings patch to a group just means
+  applying it to every device id that tag currently maps to.
 - **`DeviceClient`** (trait) — everything flock can ask a device to do:
-  read/write its Status, Network, Encode, Decode, and System settings, plus
-  reboot. This is the seam between "what flock knows about a device" and
+  read/write its Status, Network, Decode, and System settings, plus reboot.
+  This is the seam between "what flock knows about a device" and
   "how flock actually talks to it." `crates/device-mock` is the only
   implementation today; a real HTTP implementation is Phase 2 work and
   slots in without touching the registry, the web API, or the frontend.
@@ -44,12 +47,28 @@ incomplete discovery result never blocks getting a device under management.
 ## Settings tabs mirror BirdUI panels
 
 Per-device settings map directly onto the BirdUI User Guide's own panel
-grouping - Dashboard → Status, Network, AV Setup's Encode/Decode split, and
+grouping - Dashboard → Status, Network, AV Setup's Decode Settings, and
 System (password/firmware/Access Manager/UI mode) - deliberately excluding
-camera-only panels (Cam Control, AI Tracking, Exposure/White Balance/
-Picture/Colour Matrix) that don't apply to a Play converter. Every field for
-the active tab renders flat in one bordered panel; there is no nested
-submenu anywhere in the UI, mirroring the user's explicit requirement.
+both the Encode Settings panel (Play doesn't encode) and the camera-only
+panels (Cam Control, AI Tracking, Exposure/White Balance/Picture/Colour
+Matrix) that don't apply to a Play converter either. Every field for the
+active tab renders flat in one bordered panel; there is no nested submenu
+anywhere in the UI, mirroring the user's explicit requirement.
+
+## Batch edit
+
+Selecting a group and clicking "Batch edit" swaps the center panel into a
+group-scoped version of the Network/Decode/System tabs (Status is dropped -
+it's inherently per-device). Every field starts blank/"leave unchanged"
+rather than prefilled from any one device, since prefilling from a single
+member would misrepresent the others. Only fields the operator actually
+touches are sent as a JSON patch to `POST /api/groups/:tag/:tab`; the
+handler fetches each member device's own current settings, shallow-merges
+the patch into that JSON, and writes the merged result back per device
+(`crates/web/src/handlers.rs::apply_group_settings`). This means an
+untouched field keeps whatever that specific device already had - a batch
+edit narrows to "change this one thing everywhere" instead of "reset the
+whole group to a shared template."
 
 ## Web layer
 
@@ -65,8 +84,11 @@ submenu anywhere in the UI, mirroring the user's explicit requirement.
 - `POST/PUT/DELETE /api/devices[...]` — manual add/edit/remove.
 - `GET /api/discovery/scan` — runs an mDNS browse and returns hosts not
   already in the registry.
-- `GET/POST /api/devices/:id/{network,encode,decode,system}` — per-tab
-  settings read/write, routed through `DeviceClient`.
+- `GET/POST /api/devices/:id/{network,decode,system}` — per-tab settings
+  read/write, routed through `DeviceClient`.
+- `POST /api/groups/:tag/{network,decode,system}` — batch edit: merges a
+  partial JSON patch into every group member's current settings for that
+  tab (see Batch edit above).
 
 ## Docker + mDNS
 

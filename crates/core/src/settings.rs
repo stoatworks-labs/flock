@@ -1,8 +1,9 @@
 //! Per-tab settings shapes, one struct per BirdUI panel (Dashboard/Network/
-//! AV Setup's Encode+Decode split/System). Field names follow the BirdUI
-//! User Guide as closely as the public docs allow; the real device's exact
-//! REST field names are unconfirmed (see docs/architecture.md) so expect to
-//! adjust these when `DeviceClient` grows a real HTTP implementation.
+//! AV Setup's Decode Settings/System). Play is decode-only, so there is no
+//! Encode panel. Field names follow the BirdUI User Guide as closely as the
+//! public docs allow; the real device's exact REST field names are
+//! unconfirmed (see docs/architecture.md) so expect to adjust these when
+//! `DeviceClient` grows a real HTTP implementation.
 
 use serde::{Deserialize, Serialize};
 
@@ -52,48 +53,6 @@ pub struct NetworkSettings {
     pub multicast_ttl: u8,
     pub ndi_discovery_server_enabled: bool,
     pub ndi_discovery_server_ips: Vec<String>,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum PrimaryProtocol {
-    NdiHx,
-    Uvc,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum SecondaryProtocol {
-    None,
-    Srt,
-    RtmpRtsp,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum SrtConnectionType {
-    Caller,
-    Listener,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct EncodeSettings {
-    pub primary_protocol: PrimaryProtocol,
-    pub primary_enabled: bool,
-    pub ndi_stream_name: String,
-    pub ndi_groups: Vec<String>,
-    pub video_format: String,
-    pub video_compression: String,
-    pub bitrate_mode: String,
-    pub bitrate_kbps: u32,
-
-    pub secondary_protocol: SecondaryProtocol,
-    pub secondary_connection_type: SrtConnectionType,
-    pub secondary_port: u16,
-    pub secondary_latency_ms: u32,
-    pub secondary_encryption: String,
-    pub secondary_passphrase: Option<String>,
-    pub secondary_connection_url: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -7,6 +7,7 @@
     activeGroup: "",
     search: "",
     selectedId: null,
+    batchMode: false,
     activeTab: "status",
     editingId: null,
   };
@@ -34,13 +35,26 @@
   }
 
   // Supports deep-linking to a device+tab via #<id-or-name>/<tab>, e.g.
-  // #stage cam play/encode - mainly useful for scripted screenshots, but
-  // also a handy bookmarkable link for a human.
+  // #stage cam play/network, or to a group's batch-edit view via
+  // #group:<tag>/<tab>, e.g. #group:stage/network - mainly useful for
+  // scripted screenshots, but also a handy bookmarkable link for a human.
   function applyHashSelection() {
     const hash = decodeURIComponent(location.hash.replace(/^#/, ""));
     if (!hash) return;
     const [matcher, tab] = hash.split("/");
     if (!matcher) return;
+
+    if (matcher.startsWith("group:")) {
+      const tag = matcher.slice("group:".length);
+      if (!(tag in state.groups)) return;
+      state.activeGroup = tag;
+      state.batchMode = true;
+      state.selectedId = null;
+      if (tab) state.activeTab = tab;
+      render();
+      return;
+    }
+
     const device = state.devices.find(
       (d) => idStr(d.id) === matcher || d.name.toLowerCase() === matcher.toLowerCase()
     );
@@ -95,6 +109,15 @@
         render();
       });
     });
+
+    const batchBtn = el("batch-edit-btn");
+    if (state.activeGroup) {
+      batchBtn.disabled = false;
+      batchBtn.textContent = `Batch edit "${state.activeGroup}" (${(state.groups[state.activeGroup] || []).length})`;
+    } else {
+      batchBtn.disabled = true;
+      batchBtn.textContent = "Batch edit group…";
+    }
   }
 
   function renderDeviceList() {
@@ -113,7 +136,6 @@
           <span class="name">${escapeHtml(d.name)}</span>
           <span class="host">${escapeHtml(d.host)}</span>
         </span>
-        <span class="mode-badge">${d.mode}</span>
       </div>`
       )
       .join("");
@@ -135,15 +157,45 @@
 
   function selectDevice(id) {
     state.selectedId = id;
+    state.batchMode = false;
     state.activeTab = "status";
     render();
   }
 
+  function startBatchEdit() {
+    if (!state.activeGroup) return;
+    state.batchMode = true;
+    state.selectedId = null;
+    if (state.activeTab === "status") state.activeTab = "network";
+    render();
+  }
+
   function renderCenter() {
-    const device = state.selectedId ? findDevice(state.selectedId) : null;
     const tabBar = el("tab-bar");
     const preview = el("preview-box");
     const selectedActions = el("selected-actions");
+
+    if (state.batchMode && !state.activeGroup) state.batchMode = false;
+
+    if (state.batchMode) {
+      const memberIds = (state.groups[state.activeGroup] || []).map(idStr);
+      tabBar.hidden = false;
+      selectedActions.hidden = true;
+      preview.innerHTML = `<div id="preview-placeholder">Batch editing "${escapeHtml(state.activeGroup)}" — ${memberIds.length} device${memberIds.length === 1 ? "" : "s"}</div>`;
+      if (state.activeTab === "status") state.activeTab = "network";
+      tabBar.querySelectorAll(".tab-btn").forEach((btn) => {
+        btn.hidden = btn.dataset.tab === "status";
+        btn.classList.toggle("tab-active", btn.dataset.tab === state.activeTab);
+      });
+      renderBatchTabContent(state.activeGroup);
+      return;
+    }
+
+    tabBar.querySelectorAll(".tab-btn").forEach((btn) => {
+      btn.hidden = false;
+    });
+
+    const device = state.selectedId ? findDevice(state.selectedId) : null;
 
     if (!device) {
       tabBar.hidden = true;
@@ -176,10 +228,6 @@
         const settings = await api(`/api/devices/${id}/network`);
         container.innerHTML = networkForm(settings);
         wireSaveForm(id, "network", collectNetworkForm);
-      } else if (state.activeTab === "encode") {
-        const settings = await api(`/api/devices/${id}/encode`);
-        container.innerHTML = encodeForm(settings);
-        wireSaveForm(id, "encode", collectEncodeForm);
       } else if (state.activeTab === "decode") {
         const settings = await api(`/api/devices/${id}/decode`);
         container.innerHTML = decodeForm(settings);
@@ -216,21 +264,93 @@
     });
   }
 
+  // Batch-edit tabs (Network/Decode/System only - Status is per-device and
+  // has no meaning across a group). Forms render blank with a "leave
+  // unchanged" placeholder/option per field, and only fields the operator
+  // actually touched are sent - each target device merges the patch into
+  // its own current settings, so untouched fields keep their per-device
+  // values instead of being overwritten with a shared default.
+  async function renderBatchTabContent(tag) {
+    const container = el("tab-content");
+    const opts = { batch: true };
+    if (state.activeTab === "network") {
+      container.innerHTML = networkForm({}, opts);
+      wireBatchSaveForm(tag, "network", () => collectNetworkForm(opts));
+    } else if (state.activeTab === "decode") {
+      container.innerHTML = decodeForm({}, opts);
+      wireBatchSaveForm(tag, "decode", () => collectDecodeForm(opts));
+    } else if (state.activeTab === "system") {
+      container.innerHTML = systemForm({}, opts);
+      wireBatchSaveForm(tag, "system", () => collectSystemForm(opts));
+    }
+  }
+
+  function wireBatchSaveForm(tag, tab, collectFn) {
+    const btn = el("save-btn");
+    if (!btn) return;
+    btn.addEventListener("click", async () => {
+      const patch = collectFn();
+      const statusEl = el("save-status");
+      try {
+        const outcomes = await api(`/api/groups/${encodeURIComponent(tag)}/${tab}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(patch),
+        });
+        const failed = outcomes.filter((o) => !o.ok);
+        statusEl.textContent =
+          failed.length === 0
+            ? `Applied to ${outcomes.length} device${outcomes.length === 1 ? "" : "s"}`
+            : `Applied to ${outcomes.length - failed.length}/${outcomes.length} — failed: ${failed.map((f) => f.device_name).join(", ")}`;
+        statusEl.classList.add("visible");
+      } catch (err) {
+        statusEl.textContent = `Error: ${err.message}`;
+        statusEl.classList.add("visible");
+      }
+    });
+  }
+
+  function setIfPresent(patch, key, v) {
+    if (v !== "") patch[key] = v;
+  }
+  function setIfPresentNumber(patch, key, v) {
+    if (v !== "") patch[key] = Number(v);
+  }
+  function setIfPresentBool(patch, key, v) {
+    if (v !== "") patch[key] = v === "true";
+  }
+  function setIfPresentList(patch, key, v) {
+    if (v !== "") patch[key] = csvToList(v);
+  }
+
   function field(label, inner) {
     return `<label>${escapeHtml(label)}${inner}</label>`;
   }
-  function textField(id, value) {
-    return field(labelFor(id), `<input id="f-${id}" type="text" value="${escapeAttr(value ?? "")}">`);
+  function textField(id, value, opts = {}) {
+    const v = opts.batch ? "" : value ?? "";
+    const placeholder = opts.batch ? "— leave unchanged —" : "";
+    return field(labelFor(id), `<input id="f-${id}" type="text" value="${escapeAttr(v)}" placeholder="${escapeAttr(placeholder)}">`);
   }
-  function numberField(id, value) {
-    return field(labelFor(id), `<input id="f-${id}" type="number" value="${escapeAttr(value ?? 0)}">`);
+  function numberField(id, value, opts = {}) {
+    const v = opts.batch ? "" : value ?? 0;
+    const placeholder = opts.batch ? "— leave unchanged —" : "";
+    return field(labelFor(id), `<input id="f-${id}" type="number" value="${escapeAttr(v)}" placeholder="${escapeAttr(placeholder)}">`);
   }
-  function checkboxField(id, checked) {
-    return `<label class="inline-label"><span>${escapeHtml(labelFor(id))}</span><input id="f-${id}" type="checkbox" ${checked ? "checked" : ""}></label>`;
+  function checkboxField(id, checkedVal, opts = {}) {
+    if (opts.batch) {
+      return field(
+        labelFor(id),
+        `<select id="f-${id}"><option value="" selected>— leave unchanged —</option><option value="true">On</option><option value="false">Off</option></select>`
+      );
+    }
+    return `<label class="inline-label"><span>${escapeHtml(labelFor(id))}</span><input id="f-${id}" type="checkbox" ${checkedVal ? "checked" : ""}></label>`;
   }
-  function selectField(id, value, options) {
-    const opts = options.map((o) => `<option value="${escapeAttr(o)}" ${o === value ? "selected" : ""}>${escapeHtml(o)}</option>`).join("");
-    return field(labelFor(id), `<select id="f-${id}">${opts}</select>`);
+  function selectField(id, value, options, opts = {}) {
+    const optionsHtml = opts.batch
+      ? `<option value="" selected>— leave unchanged —</option>` +
+        options.map((o) => `<option value="${escapeAttr(o)}">${escapeHtml(o)}</option>`).join("")
+      : options.map((o) => `<option value="${escapeAttr(o)}" ${o === value ? "selected" : ""}>${escapeHtml(o)}</option>`).join("");
+    return field(labelFor(id), `<select id="f-${id}">${optionsHtml}</select>`);
   }
   function labelFor(id) {
     return id.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
@@ -259,147 +379,131 @@
 
   // ---------- Network tab ----------
 
-  function networkForm(s) {
+  function networkForm(s, opts = {}) {
     return `
       <div class="settings-card">
-        <h3>Network</h3>
+        <h3>Network${opts.batch ? " (batch)" : ""}</h3>
         <div class="field-grid">
-          ${selectField("config_method", s.config_method, ["dhcp", "static"])}
-          ${textField("ip_address", s.ip_address)}
-          ${textField("subnet_mask", s.subnet_mask)}
-          ${textField("gateway_address", s.gateway_address)}
-          ${numberField("dhcp_timeout_secs", s.dhcp_timeout_secs)}
-          ${textField("fallback_ip_address", s.fallback_ip_address)}
-          ${textField("fallback_subnet_mask", s.fallback_subnet_mask)}
-          ${textField("birddog_name", s.birddog_name)}
-          ${checkboxField("wifi_enabled", s.wifi_enabled)}
-          ${selectField("ndi_transmit_method", s.ndi_transmit_method, ["TCP", "UDP", "R-UDP"])}
-          ${textField("multicast_net_prefix", s.multicast_net_prefix)}
-          ${textField("multicast_net_mask", s.multicast_net_mask)}
-          ${numberField("multicast_ttl", s.multicast_ttl)}
-          ${checkboxField("ndi_discovery_server_enabled", s.ndi_discovery_server_enabled)}
-          ${textField("ndi_discovery_server_ips", (s.ndi_discovery_server_ips || []).join(", "))}
+          ${selectField("config_method", s.config_method, ["dhcp", "static"], opts)}
+          ${textField("ip_address", s.ip_address, opts)}
+          ${textField("subnet_mask", s.subnet_mask, opts)}
+          ${textField("gateway_address", s.gateway_address, opts)}
+          ${numberField("dhcp_timeout_secs", s.dhcp_timeout_secs, opts)}
+          ${textField("fallback_ip_address", s.fallback_ip_address, opts)}
+          ${textField("fallback_subnet_mask", s.fallback_subnet_mask, opts)}
+          ${textField("birddog_name", s.birddog_name, opts)}
+          ${checkboxField("wifi_enabled", s.wifi_enabled, opts)}
+          ${selectField("ndi_transmit_method", s.ndi_transmit_method, ["TCP", "UDP", "R-UDP"], opts)}
+          ${textField("multicast_net_prefix", s.multicast_net_prefix, opts)}
+          ${textField("multicast_net_mask", s.multicast_net_mask, opts)}
+          ${numberField("multicast_ttl", s.multicast_ttl, opts)}
+          ${checkboxField("ndi_discovery_server_enabled", s.ndi_discovery_server_enabled, opts)}
+          ${textField("ndi_discovery_server_ips", (s.ndi_discovery_server_ips || []).join(", "), opts)}
         </div>
       </div>
       ${saveRow()}`;
   }
-  function collectNetworkForm() {
-    return {
-      config_method: val("config_method"),
-      ip_address: val("ip_address"),
-      subnet_mask: val("subnet_mask"),
-      gateway_address: val("gateway_address"),
-      dhcp_timeout_secs: Number(val("dhcp_timeout_secs")),
-      fallback_ip_address: val("fallback_ip_address"),
-      fallback_subnet_mask: val("fallback_subnet_mask"),
-      birddog_name: val("birddog_name"),
-      wifi_enabled: checked("wifi_enabled"),
-      ndi_transmit_method: val("ndi_transmit_method"),
-      multicast_net_prefix: val("multicast_net_prefix"),
-      multicast_net_mask: val("multicast_net_mask"),
-      multicast_ttl: Number(val("multicast_ttl")),
-      ndi_discovery_server_enabled: checked("ndi_discovery_server_enabled"),
-      ndi_discovery_server_ips: csvToList(val("ndi_discovery_server_ips")),
-    };
-  }
-
-  // ---------- Encode tab ----------
-
-  function encodeForm(s) {
-    return `
-      <div class="settings-card">
-        <h3>Primary encode (NDI HX / UVC)</h3>
-        <div class="field-grid">
-          ${selectField("primary_protocol", s.primary_protocol, ["ndihx", "uvc"])}
-          ${checkboxField("primary_enabled", s.primary_enabled)}
-          ${textField("ndi_stream_name", s.ndi_stream_name)}
-          ${textField("ndi_groups", (s.ndi_groups || []).join(", "))}
-          ${textField("video_format", s.video_format)}
-          ${textField("video_compression", s.video_compression)}
-          ${textField("bitrate_mode", s.bitrate_mode)}
-          ${numberField("bitrate_kbps", s.bitrate_kbps)}
-        </div>
-      </div>
-      <div class="settings-card">
-        <h3>Secondary stream (SRT / RTMP-RTSP)</h3>
-        <div class="field-grid">
-          ${selectField("secondary_protocol", s.secondary_protocol, ["none", "srt", "rtmprtsp"])}
-          ${selectField("secondary_connection_type", s.secondary_connection_type, ["caller", "listener"])}
-          ${numberField("secondary_port", s.secondary_port)}
-          ${numberField("secondary_latency_ms", s.secondary_latency_ms)}
-          ${textField("secondary_encryption", s.secondary_encryption)}
-          ${textField("secondary_passphrase", s.secondary_passphrase)}
-          ${textField("secondary_connection_url", s.secondary_connection_url)}
-        </div>
-      </div>
-      ${saveRow()}`;
-  }
-  function collectEncodeForm() {
-    return {
-      primary_protocol: val("primary_protocol"),
-      primary_enabled: checked("primary_enabled"),
-      ndi_stream_name: val("ndi_stream_name"),
-      ndi_groups: csvToList(val("ndi_groups")),
-      video_format: val("video_format"),
-      video_compression: val("video_compression"),
-      bitrate_mode: val("bitrate_mode"),
-      bitrate_kbps: Number(val("bitrate_kbps")),
-      secondary_protocol: val("secondary_protocol"),
-      secondary_connection_type: val("secondary_connection_type"),
-      secondary_port: Number(val("secondary_port")),
-      secondary_latency_ms: Number(val("secondary_latency_ms")),
-      secondary_encryption: val("secondary_encryption"),
-      secondary_passphrase: val("secondary_passphrase") || null,
-      secondary_connection_url: val("secondary_connection_url") || null,
-    };
+  function collectNetworkForm(opts = {}) {
+    if (!opts.batch) {
+      return {
+        config_method: val("config_method"),
+        ip_address: val("ip_address"),
+        subnet_mask: val("subnet_mask"),
+        gateway_address: val("gateway_address"),
+        dhcp_timeout_secs: Number(val("dhcp_timeout_secs")),
+        fallback_ip_address: val("fallback_ip_address"),
+        fallback_subnet_mask: val("fallback_subnet_mask"),
+        birddog_name: val("birddog_name"),
+        wifi_enabled: checked("wifi_enabled"),
+        ndi_transmit_method: val("ndi_transmit_method"),
+        multicast_net_prefix: val("multicast_net_prefix"),
+        multicast_net_mask: val("multicast_net_mask"),
+        multicast_ttl: Number(val("multicast_ttl")),
+        ndi_discovery_server_enabled: checked("ndi_discovery_server_enabled"),
+        ndi_discovery_server_ips: csvToList(val("ndi_discovery_server_ips")),
+      };
+    }
+    const patch = {};
+    setIfPresent(patch, "config_method", val("config_method"));
+    setIfPresent(patch, "ip_address", val("ip_address"));
+    setIfPresent(patch, "subnet_mask", val("subnet_mask"));
+    setIfPresent(patch, "gateway_address", val("gateway_address"));
+    setIfPresentNumber(patch, "dhcp_timeout_secs", val("dhcp_timeout_secs"));
+    setIfPresent(patch, "fallback_ip_address", val("fallback_ip_address"));
+    setIfPresent(patch, "fallback_subnet_mask", val("fallback_subnet_mask"));
+    setIfPresent(patch, "birddog_name", val("birddog_name"));
+    setIfPresentBool(patch, "wifi_enabled", val("wifi_enabled"));
+    setIfPresent(patch, "ndi_transmit_method", val("ndi_transmit_method"));
+    setIfPresent(patch, "multicast_net_prefix", val("multicast_net_prefix"));
+    setIfPresent(patch, "multicast_net_mask", val("multicast_net_mask"));
+    setIfPresentNumber(patch, "multicast_ttl", val("multicast_ttl"));
+    setIfPresentBool(patch, "ndi_discovery_server_enabled", val("ndi_discovery_server_enabled"));
+    setIfPresentList(patch, "ndi_discovery_server_ips", val("ndi_discovery_server_ips"));
+    return patch;
   }
 
   // ---------- Decode tab ----------
 
-  function decodeForm(s) {
+  function decodeForm(s, opts = {}) {
     return `
       <div class="settings-card">
-        <h3>Decode source</h3>
+        <h3>Decode source${opts.batch ? " (batch)" : ""}</h3>
         <div class="field-grid">
-          ${textField("selected_source", s.selected_source)}
-          ${textField("available_sources", (s.available_sources || []).join(", "))}
-          ${textField("failover_source", s.failover_source)}
-          ${textField("screensaver_mode", s.screensaver_mode)}
+          ${textField("selected_source", s.selected_source, opts)}
+          ${textField("available_sources", (s.available_sources || []).join(", "), opts)}
+          ${textField("failover_source", s.failover_source, opts)}
+          ${textField("screensaver_mode", s.screensaver_mode, opts)}
         </div>
       </div>
       ${saveRow()}`;
   }
-  function collectDecodeForm() {
-    return {
-      selected_source: val("selected_source") || null,
-      available_sources: csvToList(val("available_sources")),
-      failover_source: val("failover_source") || null,
-      screensaver_mode: val("screensaver_mode"),
-    };
+  function collectDecodeForm(opts = {}) {
+    if (!opts.batch) {
+      return {
+        selected_source: val("selected_source") || null,
+        available_sources: csvToList(val("available_sources")),
+        failover_source: val("failover_source") || null,
+        screensaver_mode: val("screensaver_mode"),
+      };
+    }
+    const patch = {};
+    setIfPresent(patch, "selected_source", val("selected_source"));
+    setIfPresentList(patch, "available_sources", val("available_sources"));
+    setIfPresent(patch, "failover_source", val("failover_source"));
+    setIfPresent(patch, "screensaver_mode", val("screensaver_mode"));
+    return patch;
   }
 
   // ---------- System tab ----------
 
-  function systemForm(s) {
+  function systemForm(s, opts = {}) {
     return `
       <div class="settings-card">
-        <h3>System</h3>
+        <h3>System${opts.batch ? " (batch)" : ""}</h3>
         <div class="field-grid">
-          ${textField("firmware_version", s.firmware_version)}
-          ${textField("remote_ip_list", (s.remote_ip_list || []).join(", "))}
-          ${textField("ndi_group_list", (s.ndi_group_list || []).join(", "))}
-          ${selectField("ui_mode", s.ui_mode, ["Dark", "Light"])}
+          ${textField("firmware_version", s.firmware_version, opts)}
+          ${textField("remote_ip_list", (s.remote_ip_list || []).join(", "), opts)}
+          ${textField("ndi_group_list", (s.ndi_group_list || []).join(", "), opts)}
+          ${selectField("ui_mode", s.ui_mode, ["Dark", "Light"], opts)}
         </div>
       </div>
       ${saveRow()}`;
   }
-  function collectSystemForm() {
-    return {
-      firmware_version: val("firmware_version"),
-      remote_ip_list: csvToList(val("remote_ip_list")),
-      ndi_group_list: csvToList(val("ndi_group_list")),
-      ui_mode: val("ui_mode"),
-    };
+  function collectSystemForm(opts = {}) {
+    if (!opts.batch) {
+      return {
+        firmware_version: val("firmware_version"),
+        remote_ip_list: csvToList(val("remote_ip_list")),
+        ndi_group_list: csvToList(val("ndi_group_list")),
+        ui_mode: val("ui_mode"),
+      };
+    }
+    const patch = {};
+    setIfPresent(patch, "firmware_version", val("firmware_version"));
+    setIfPresentList(patch, "remote_ip_list", val("remote_ip_list"));
+    setIfPresentList(patch, "ndi_group_list", val("ndi_group_list"));
+    setIfPresent(patch, "ui_mode", val("ui_mode"));
+    return patch;
   }
 
   // ---------- right panel: discovery + add/remove + local settings ----------
@@ -446,7 +550,6 @@
     el("device-form-id").value = state.editingId;
     el("df-name").value = device.name;
     el("df-host").value = device.host;
-    el("df-mode").value = device.mode;
     el("df-tags").value = device.tags.join(", ");
     el("df-password").value = "";
     el("df-submit").textContent = "Save changes";
@@ -459,7 +562,6 @@
     const body = {
       name: el("df-name").value.trim(),
       host: el("df-host").value.trim(),
-      mode: el("df-mode").value,
       tags: csvToList(el("df-tags").value),
       password: el("df-password").value || null,
       discovered: false,
@@ -522,7 +624,6 @@
         body: JSON.stringify({
           name: d.name,
           host: d.host,
-          mode: d.mode,
           tags: d.tags || [],
           password: null,
           discovered: false,
@@ -574,6 +675,7 @@
       });
     });
 
+    el("batch-edit-btn").addEventListener("click", startBatchEdit);
     el("scan-btn").addEventListener("click", runScan);
     el("device-form").addEventListener("submit", submitDeviceForm);
     el("df-cancel").addEventListener("click", resetDeviceForm);

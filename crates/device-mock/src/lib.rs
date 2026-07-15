@@ -8,15 +8,13 @@ use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 
 use flock_core::{
-    ConfigMethod, DecodeSettings, Device, DeviceClient, DeviceClientProvider, DeviceId, DeviceMode,
-    DeviceStatus, EncodeSettings, NdiTransmitMethod, NetworkSettings, PrimaryProtocol,
-    SecondaryProtocol, SrtConnectionType, SystemSettings,
+    ConfigMethod, DecodeSettings, Device, DeviceClient, DeviceClientProvider, DeviceId,
+    DeviceStatus, NdiTransmitMethod, NetworkSettings, SystemSettings,
 };
 
 struct MockState {
     status: DeviceStatus,
     network: NetworkSettings,
-    encode: EncodeSettings,
     decode: DecodeSettings,
     system: SystemSettings,
 }
@@ -26,7 +24,7 @@ pub struct MockDevice {
 }
 
 impl MockDevice {
-    pub fn new(name: &str, mode: DeviceMode) -> Self {
+    pub fn new(name: &str) -> Self {
         let stream_name = name.replace(' ', "-").to_lowercase();
         let state = MockState {
             status: DeviceStatus {
@@ -56,23 +54,6 @@ impl MockDevice {
                 multicast_ttl: 1,
                 ndi_discovery_server_enabled: false,
                 ndi_discovery_server_ips: vec![],
-            },
-            encode: EncodeSettings {
-                primary_protocol: PrimaryProtocol::NdiHx,
-                primary_enabled: matches!(mode, DeviceMode::Encode),
-                ndi_stream_name: stream_name.clone(),
-                ndi_groups: vec![],
-                video_format: "1080p60".to_string(),
-                video_compression: "H.264".to_string(),
-                bitrate_mode: "Medium".to_string(),
-                bitrate_kbps: 20_000,
-                secondary_protocol: SecondaryProtocol::None,
-                secondary_connection_type: SrtConnectionType::Caller,
-                secondary_port: 9000,
-                secondary_latency_ms: 120,
-                secondary_encryption: "None".to_string(),
-                secondary_passphrase: None,
-                secondary_connection_url: None,
             },
             decode: DecodeSettings {
                 selected_source: None,
@@ -115,20 +96,6 @@ impl DeviceClient for MockDevice {
 
     async fn set_network_settings(&self, settings: NetworkSettings) -> anyhow::Result<()> {
         self.state.write().expect("mock lock poisoned").network = settings;
-        Ok(())
-    }
-
-    async fn encode_settings(&self) -> anyhow::Result<EncodeSettings> {
-        Ok(self
-            .state
-            .read()
-            .expect("mock lock poisoned")
-            .encode
-            .clone())
-    }
-
-    async fn set_encode_settings(&self, settings: EncodeSettings) -> anyhow::Result<()> {
-        self.state.write().expect("mock lock poisoned").encode = settings;
         Ok(())
     }
 
@@ -191,7 +158,7 @@ impl DeviceClientProvider for MockClientProvider {
         {
             return existing.clone();
         }
-        let mock = Arc::new(MockDevice::new(&device.name, device.mode));
+        let mock = Arc::new(MockDevice::new(&device.name));
         self.devices
             .write()
             .expect("mock provider lock poisoned")
@@ -210,7 +177,6 @@ pub fn demo_devices() -> Vec<Device> {
             id: DeviceId::new(),
             name: "Stage Cam Play".to_string(),
             host: "birddog-stage.local".to_string(),
-            mode: DeviceMode::Encode,
             tags: vec!["stage".to_string(), "primary".to_string()],
             credentials: DeviceCredentials {
                 password: Some("birddog".to_string()),
@@ -221,7 +187,6 @@ pub fn demo_devices() -> Vec<Device> {
             id: DeviceId::new(),
             name: "Lobby Play".to_string(),
             host: "birddog-lobby.local".to_string(),
-            mode: DeviceMode::Decode,
             tags: vec!["lobby".to_string()],
             credentials: DeviceCredentials {
                 password: Some("birddog".to_string()),
@@ -232,7 +197,6 @@ pub fn demo_devices() -> Vec<Device> {
             id: DeviceId::new(),
             name: "Backup Feed Play".to_string(),
             host: "birddog-backup.local".to_string(),
-            mode: DeviceMode::Encode,
             tags: vec!["stage".to_string(), "backup".to_string()],
             credentials: DeviceCredentials {
                 password: Some("birddog".to_string()),

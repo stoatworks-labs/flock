@@ -226,6 +226,8 @@ body {
 .btn-primary:hover { background: var(--accent-dim); }
 .btn-danger { color: var(--danger); border-color: var(--danger); }
 .btn-danger:hover { background: rgba(209, 72, 63, 0.12); }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn:disabled:hover { border-color: var(--border); }
 
 .discovery-results { display: flex; flex-direction: column; gap: 0.4rem; }
 .discovery-item {

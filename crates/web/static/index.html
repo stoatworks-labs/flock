@@ -17,6 +17,7 @@
         <div id="groups-list" class="chip-list">
           <button class="chip chip-active" data-group="">All devices</button>
         </div>
+        <button id="batch-edit-btn" class="btn" disabled>Batch edit group…</button>
       </div>
 
       <div class="panel-section grow">
@@ -33,7 +34,6 @@
       <nav id="tab-bar" class="tab-bar" hidden>
         <button class="tab-btn tab-active" data-tab="status">Status</button>
         <button class="tab-btn" data-tab="network">Network</button>
-        <button class="tab-btn" data-tab="encode">Encode</button>
         <button class="tab-btn" data-tab="decode">Decode</button>
         <button class="tab-btn" data-tab="system">System</button>
       </nav>
@@ -54,12 +54,6 @@
           <input type="hidden" id="device-form-id">
           <label>Name<input id="df-name" type="text" required></label>
           <label>Host / IP<input id="df-host" type="text" required placeholder="birddog-xxxxx.local"></label>
-          <label>Mode
-            <select id="df-mode">
-              <option value="encode">Encode</option>
-              <option value="decode">Decode</option>
-            </select>
-          </label>
           <label>Tags (comma separated)<input id="df-tags" type="text" placeholder="stage, backup"></label>
           <label>BirdUI password<input id="df-password" type="password" placeholder="default: birddog"></label>
           <div class="form-actions">

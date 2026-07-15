@@ -31,13 +31,6 @@ impl FromStr for DeviceId {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum DeviceMode {
-    Encode,
-    Decode,
-}
-
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct DeviceCredentials {
     /// BirdUI password for this device. Never echoed back to the frontend in
@@ -48,13 +41,13 @@ pub struct DeviceCredentials {
 /// A registered BirdDog Play unit. This is pure metadata + how to reach it;
 /// the actual control surface lives behind `DeviceClient` (see client.rs) so
 /// swapping the mock implementation for a real HTTP one never touches this
-/// struct.
+/// struct. Play is decode-only (NDI/SRT source -> HDMI out) - there is no
+/// per-device encode/decode mode.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Device {
     pub id: DeviceId,
     pub name: String,
     pub host: String,
-    pub mode: DeviceMode,
     #[serde(default)]
     pub tags: Vec<String>,
     #[serde(default)]
