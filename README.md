@@ -118,11 +118,24 @@ container isolation and rely on manual add only.
 
 ## Architecture
 
+```mermaid
+flowchart LR
+    P1["BirdDog Play"] <-- REST / mDNS --> DC
+    P2["BirdDog Play"] <-- REST / mDNS --> DC
+    DC["DeviceClient trait<br/>(real-hardware seam)"] --> REG["Registry + tag groups<br/>(core)"]
+    REG --> WEB["web (axum)"]
+    WEB -- WebSocket --> UI["Browser fleet UI<br/>tabbed settings + batch edit"]
+```
+
 See [docs/architecture.md](docs/architecture.md) for the crate layout, the
 `DeviceClient` trait that isolates real-hardware integration to one seam,
 and why several BirdDog-specific details (mDNS service type, REST field
 names) are marked as unconfirmed pending real hardware.
 
-## Roadmap
+## Roadmap / TODO
 
-See [docs/roadmap.md](docs/roadmap.md).
+Full plan in [docs/roadmap.md](docs/roadmap.md). Next up:
+
+- [ ] **Validate against a real BirdDog Play** — confirm the advertised mDNS service type and the real REST field names (both currently unconfirmed).
+- [ ] **Real live video preview** — an actual NDI/SRT frame grab (currently a placeholder).
+- [ ] **Optional auth on flock itself** — currently trusted-LAN only, matching BirdUI's own model.
