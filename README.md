@@ -15,6 +15,41 @@ interface. Discover Play units on the LAN or add them manually, tag each
 into (multiple) groups, and see/change every BirdUI setting for a selected
 device from one un-nested, tabbed view.
 
+## Screenshots
+
+*Real screenshots of flock running locally against the three seeded
+`device-mock` devices (see [Status](#status)) — not mockups.*
+
+**Overview** — device list grouped by tag on the left (a device can sit in
+more than one group), preview + settings in the center, discovery/add/local
+settings on the right:
+
+![flock overview: three devices grouped by tag, no device selected yet](docs/screenshots/overview.png)
+
+**Status** tab — the per-device dashboard:
+
+![flock Status tab showing a device's dashboard summary](docs/screenshots/status.png)
+
+**Network** tab — Ethernet/Wi-Fi, NDI transmit method, multicast, and
+discovery server settings, all in one flat panel:
+
+![flock Network tab with DHCP/static, NDI transmit method, and multicast fields](docs/screenshots/network.png)
+
+**Encode** tab — primary NDI HX/UVC and secondary SRT/RTMP-RTSP side by
+side, matching BirdUI's Encode Settings without nesting either behind a
+submenu:
+
+![flock Encode tab showing primary NDI encode settings and secondary SRT stream settings](docs/screenshots/encode.png)
+
+**Decode** tab — NDI source selection and failover for a device in Decode
+mode:
+
+![flock Decode tab showing NDI source and failover fields](docs/screenshots/decode.png)
+
+**System** tab — firmware, Access Manager lists, and UI mode:
+
+![flock System tab showing firmware version and Access Manager fields](docs/screenshots/system.png)
+
 ## What it does
 
 - **Device registry**: any number of BirdDog Play devices, each taggable

@@ -30,6 +30,24 @@
     state.devices = data.devices;
     state.groups = data.groups;
     render();
+    applyHashSelection();
+  }
+
+  // Supports deep-linking to a device+tab via #<id-or-name>/<tab>, e.g.
+  // #stage cam play/encode - mainly useful for scripted screenshots, but
+  // also a handy bookmarkable link for a human.
+  function applyHashSelection() {
+    const hash = decodeURIComponent(location.hash.replace(/^#/, ""));
+    if (!hash) return;
+    const [matcher, tab] = hash.split("/");
+    if (!matcher) return;
+    const device = state.devices.find(
+      (d) => idStr(d.id) === matcher || d.name.toLowerCase() === matcher.toLowerCase()
+    );
+    if (!device) return;
+    state.selectedId = idStr(device.id);
+    if (tab) state.activeTab = tab;
+    render();
   }
 
   function connectWs() {
