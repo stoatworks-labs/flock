@@ -1,0 +1,99 @@
+<title>flock</title>
+<link rel="stylesheet" href="/style.css">
+
+<div id="app">
+  <header id="topbar">
+    <span class="brand">flock</span>
+    <span class="tagline">multi-device BirdDog Play control</span>
+    <span id="conn-indicator" class="conn-indicator" title="Live connection status">●</span>
+  </header>
+
+  <div id="layout">
+    <aside id="left-panel">
+      <input id="search" type="text" placeholder="Search devices or tags…">
+
+      <div class="panel-section">
+        <div class="panel-heading">Groups</div>
+        <div id="groups-list" class="chip-list">
+          <button class="chip chip-active" data-group="">All devices</button>
+        </div>
+      </div>
+
+      <div class="panel-section grow">
+        <div class="panel-heading">Devices</div>
+        <div id="device-list" class="device-list"></div>
+      </div>
+    </aside>
+
+    <main id="center-panel">
+      <div id="preview-box">
+        <div id="preview-placeholder">Select a device to view its preview and settings</div>
+      </div>
+
+      <nav id="tab-bar" class="tab-bar" hidden>
+        <button class="tab-btn tab-active" data-tab="status">Status</button>
+        <button class="tab-btn" data-tab="network">Network</button>
+        <button class="tab-btn" data-tab="encode">Encode</button>
+        <button class="tab-btn" data-tab="decode">Decode</button>
+        <button class="tab-btn" data-tab="system">System</button>
+      </nav>
+
+      <section id="tab-content" class="tab-content"></section>
+    </main>
+
+    <aside id="right-panel">
+      <div class="panel-section">
+        <div class="panel-heading">Discovery</div>
+        <button id="scan-btn" class="btn">Scan network</button>
+        <div id="discovery-results" class="discovery-results"></div>
+      </div>
+
+      <div class="panel-section">
+        <div class="panel-heading" id="add-device-heading">Add device manually</div>
+        <form id="device-form" class="stacked-form">
+          <input type="hidden" id="device-form-id">
+          <label>Name<input id="df-name" type="text" required></label>
+          <label>Host / IP<input id="df-host" type="text" required placeholder="birddog-xxxxx.local"></label>
+          <label>Mode
+            <select id="df-mode">
+              <option value="encode">Encode</option>
+              <option value="decode">Decode</option>
+            </select>
+          </label>
+          <label>Tags (comma separated)<input id="df-tags" type="text" placeholder="stage, backup"></label>
+          <label>BirdUI password<input id="df-password" type="password" placeholder="default: birddog"></label>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary" id="df-submit">Add device</button>
+            <button type="button" class="btn" id="df-cancel" hidden>Cancel edit</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="panel-section" id="selected-actions" hidden>
+        <div class="panel-heading">Selected device</div>
+        <button class="btn" id="edit-device-btn">Edit name / tags</button>
+        <button class="btn" id="reboot-device-btn">Reboot</button>
+        <button class="btn btn-danger" id="remove-device-btn">Remove from flock</button>
+      </div>
+
+      <div class="panel-section grow">
+        <div class="panel-heading">Local app settings</div>
+        <label class="inline-label">
+          <span>Theme</span>
+          <select id="theme-select">
+            <option value="dark">Dark</option>
+            <option value="light">Light</option>
+          </select>
+        </label>
+        <div class="form-actions">
+          <button class="btn" id="export-btn">Export registry</button>
+          <label class="btn" id="import-btn">Import registry
+            <input type="file" id="import-file" accept="application/json" hidden>
+          </label>
+        </div>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<script src="/app.js"></script>

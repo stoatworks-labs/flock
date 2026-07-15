@@ -1,0 +1,23 @@
+services:
+  flock:
+    build: .
+    image: flock:latest
+    restart: unless-stopped
+    # Host networking is required for mDNS (UDP 5353 multicast) discovery to
+    # work from inside the container - Docker's default bridge network does
+    # not reliably forward multicast traffic. flock binds directly to
+    # 0.0.0.0:8080 on the host as a result (no `ports:` mapping needed/used).
+    # If you don't need discovery and would rather keep container network
+    # isolation, drop this line and add `ports: ["8080:8080"]` instead -
+    # manual add-by-IP works regardless of discovery.
+    network_mode: host
+    volumes:
+      - flock-data:/app/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  flock-data:

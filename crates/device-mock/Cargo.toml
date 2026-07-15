@@ -1,0 +1,12 @@
+[package]
+name = "flock-device-mock"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+flock-core = { path = "../core" }
+async-trait.workspace = true
+tokio.workspace = true
+serde.workspace = true
+anyhow.workspace = true

@@ -1,0 +1,44 @@
+mod config;
+
+use std::sync::Arc;
+
+use flock_device_mock::{demo_devices, MockClientProvider};
+use flock_discovery::Discovery;
+use flock_web::AppState;
+
+use config::Config;
+
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
+    tracing_subscriber::fmt()
+        .with_env_filter(
+            tracing_subscriber::EnvFilter::from_default_env().add_directive("flock=info".parse()?),
+        )
+        .init();
+
+    let config_path = std::env::args()
+        .nth(1)
+        .unwrap_or_else(|| "config/flock.toml".to_string());
+    let config = Config::load(&config_path)?;
+    tracing::info!(?config, "loaded config");
+
+    let registry = flock_core::Registry::load_or_new(config.registry_path.clone().into())?;
+    if config.seed_demo_devices && registry.list().is_empty() {
+        tracing::info!("registry is empty, seeding demo devices");
+        for device in demo_devices() {
+            registry.upsert(device)?;
+        }
+    }
+
+    let state = AppState {
+        registry: Arc::new(registry),
+        provider: Arc::new(MockClientProvider::new()),
+        discovery: Arc::new(Discovery::new()?),
+    };
+
+    let app = flock_web::app(state);
+    let listener = tokio::net::TcpListener::bind(&config.bind).await?;
+    tracing::info!(bind = %config.bind, "flock listening");
+    axum::serve(listener, app).await?;
+    Ok(())
+}
