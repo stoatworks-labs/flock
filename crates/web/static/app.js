@@ -10,6 +10,9 @@
     batchMode: false,
     activeTab: "status",
     editingId: null,
+    // Tags present here are collapsed; everything else (including the
+    // synthetic "" / "All devices" group) starts expanded.
+    collapsedGroups: new Set(),
   };
 
   const el = (id) => document.getElementById(id);
@@ -83,8 +86,9 @@
 
   // ---------- rendering: left panel ----------
 
+  // Search-only now - group membership is handled by which section a
+  // device is nested under, not by filtering a single flat list.
   function matchesFilter(device) {
-    if (state.activeGroup && !device.tags.includes(state.activeGroup)) return false;
     if (!state.search) return true;
     const needle = state.search.toLowerCase();
     return (
@@ -94,53 +98,85 @@
     );
   }
 
-  function renderGroups() {
-    const container = el("groups-list");
+  // Nested view: groups listed vertically, each with an expand arrow to
+  // reveal its members. Clicking a group's header batch-edits that whole
+  // group in one step (no separate "batch edit" button); clicking the
+  // arrow only toggles expansion. A device in multiple groups appears
+  // nested under each one - that's the point, groups are derived from
+  // tags, not exclusive membership. "All devices" is a synthetic
+  // pseudo-group (not a real tag) so its header just clears any
+  // selection/batch-mode instead of offering to batch-edit it.
+  function renderGroupTree() {
+    const container = el("group-tree");
     const tags = Object.keys(state.groups).sort();
-    const chips = [`<button class="chip ${state.activeGroup === "" ? "chip-active" : ""}" data-group="">All devices</button>`];
+    const sections = [{ tag: "", label: "All devices", members: state.devices.map((d) => idStr(d.id)) }];
     for (const tag of tags) {
-      const active = state.activeGroup === tag ? "chip-active" : "";
-      chips.push(`<button class="chip ${active}" data-group="${escapeAttr(tag)}">${escapeHtml(tag)} (${state.groups[tag].length})</button>`);
+      sections.push({ tag, label: tag, members: state.groups[tag].map(idStr) });
     }
-    container.innerHTML = chips.join("");
-    container.querySelectorAll(".chip").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        state.activeGroup = btn.dataset.group;
-        render();
+
+    const html = sections
+      .map(({ tag, label, members }) => {
+        const devices = members.map((id) => findDevice(id)).filter(Boolean).filter(matchesFilter);
+        if (state.search && devices.length === 0) return "";
+
+        const expanded = !state.collapsedGroups.has(tag);
+        const isActive = state.batchMode && state.activeGroup === tag && tag !== "";
+        const memberRows = devices
+          .map(
+            (d) => `
+          <div class="device-row ${idStr(d.id) === state.selectedId ? "selected" : ""}" data-id="${escapeAttr(idStr(d.id))}">
+            <span class="status-dot"></span>
+            <span class="name-block">
+              <span class="name">${escapeHtml(d.name)}</span>
+              <span class="host">${escapeHtml(d.host)}</span>
+            </span>
+          </div>`
+          )
+          .join("");
+
+        return `
+          <div class="group-section">
+            <div class="group-header ${isActive ? "active" : ""}" data-tag="${escapeAttr(tag)}">
+              <span class="expand-arrow ${expanded ? "expanded" : ""}" data-arrow="${escapeAttr(tag)}">▸</span>
+              <span class="group-name">${escapeHtml(label)}</span>
+              <span class="group-count">${devices.length}</span>
+            </div>
+            ${expanded ? `<div class="group-members">${memberRows || '<div class="devices-empty">No devices.</div>'}</div>` : ""}
+          </div>`;
+      })
+      .join("");
+
+    container.innerHTML = html || `<div class="devices-empty">No devices match.</div>`;
+
+    container.querySelectorAll(".expand-arrow").forEach((arrow) => {
+      arrow.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const tag = arrow.dataset.arrow;
+        if (state.collapsedGroups.has(tag)) {
+          state.collapsedGroups.delete(tag);
+        } else {
+          state.collapsedGroups.add(tag);
+        }
+        renderGroupTree();
       });
     });
-
-    const batchBtn = el("batch-edit-btn");
-    if (state.activeGroup) {
-      batchBtn.disabled = false;
-      batchBtn.textContent = `Batch edit "${state.activeGroup}" (${(state.groups[state.activeGroup] || []).length})`;
-    } else {
-      batchBtn.disabled = true;
-      batchBtn.textContent = "Batch edit group…";
-    }
-  }
-
-  function renderDeviceList() {
-    const container = el("device-list");
-    const visible = state.devices.filter(matchesFilter);
-    if (visible.length === 0) {
-      container.innerHTML = `<div class="devices-empty">No devices match.</div>`;
-      return;
-    }
-    container.innerHTML = visible
-      .map(
-        (d) => `
-      <div class="device-row ${d.id === state.selectedId ? "selected" : ""}" data-id="${escapeAttr(idStr(d.id))}">
-        <span class="status-dot"></span>
-        <span class="name-block">
-          <span class="name">${escapeHtml(d.name)}</span>
-          <span class="host">${escapeHtml(d.host)}</span>
-        </span>
-      </div>`
-      )
-      .join("");
+    container.querySelectorAll(".group-header").forEach((header) => {
+      header.addEventListener("click", () => {
+        const tag = header.dataset.tag;
+        if (tag) {
+          startBatchEdit(tag);
+        } else {
+          state.selectedId = null;
+          state.batchMode = false;
+          render();
+        }
+      });
+    });
     container.querySelectorAll(".device-row").forEach((row) => {
-      row.addEventListener("click", () => selectDevice(row.dataset.id));
+      row.addEventListener("click", (e) => {
+        e.stopPropagation();
+        selectDevice(row.dataset.id);
+      });
     });
   }
 
@@ -162,8 +198,9 @@
     render();
   }
 
-  function startBatchEdit() {
-    if (!state.activeGroup) return;
+  function startBatchEdit(tag) {
+    if (!tag) return;
+    state.activeGroup = tag;
     state.batchMode = true;
     state.selectedId = null;
     if (state.activeTab === "status") state.activeTab = "network";
@@ -672,8 +709,7 @@
   // ---------- render orchestration ----------
 
   function render() {
-    renderGroups();
-    renderDeviceList();
+    renderGroupTree();
     renderCenter();
   }
 
@@ -739,7 +775,7 @@
 
     el("search").addEventListener("input", (e) => {
       state.search = e.target.value;
-      renderDeviceList();
+      renderGroupTree();
     });
 
     el("tab-bar").querySelectorAll(".tab-btn").forEach((btn) => {
@@ -749,7 +785,6 @@
       });
     });
 
-    el("batch-edit-btn").addEventListener("click", startBatchEdit);
     el("scan-btn").addEventListener("click", runScan);
     el("device-form").addEventListener("submit", submitDeviceForm);
     el("df-cancel").addEventListener("click", resetDeviceForm);

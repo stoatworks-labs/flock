@@ -195,9 +195,26 @@ Matrix) that don't apply to a Play converter either. Every field for the
 active tab renders flat in one bordered panel; there is no nested submenu
 anywhere in the UI, mirroring the user's explicit requirement.
 
+## Left panel: nested group tree
+
+Groups are a vertical tree, not a horizontal chip list - each group header
+has an expand arrow revealing its members (a device in multiple groups
+appears nested under each one, since groups are derived from tags, not
+exclusive membership; see `Registry::groups()` above). Clicking a group's
+header directly enters batch-edit for that group in one step; clicking the
+arrow only toggles expansion without changing selection; clicking a nested
+device selects it for the normal single-device view. "All devices" is a
+synthetic pseudo-group (not a real tag) at the top - its header just clears
+selection/batch-mode instead of offering to batch-edit it, since there's no
+tag to batch against. All of this lives in one function,
+`renderGroupTree()` in `crates/web/static/app.js`, replacing an earlier
+two-step design (a horizontal chip list to filter, plus a separate "Batch
+edit" button) that took an extra click and didn't show group membership at
+a glance.
+
 ## Batch edit
 
-Selecting a group and clicking "Batch edit" swaps the center panel into a
+Clicking a group's header (see above) swaps the center panel into a
 group-scoped version of the Network/Decode/System tabs (Status is dropped -
 it's inherently per-device). Every field starts blank/"leave unchanged"
 rather than prefilled from any one device, since prefilling from a single

@@ -97,17 +97,44 @@ body {
   color: var(--text);
 }
 
-.chip-list { display: flex; flex-wrap: wrap; gap: 0.4rem; }
-.chip {
+.group-tree { display: flex; flex-direction: column; gap: 0.3rem; overflow-y: auto; }
+.group-header {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.6rem;
+  border-radius: var(--radius);
+  border: 1px solid transparent;
   background: var(--bg-card);
-  border: 1px solid var(--border);
-  color: var(--text-dim);
-  border-radius: 999px;
-  padding: 0.3rem 0.7rem;
-  font-size: 0.8rem;
   cursor: pointer;
 }
-.chip.chip-active { background: var(--accent); border-color: var(--accent); color: #fff; }
+.group-header:hover { border-color: var(--border); }
+.group-header.active { border-color: var(--accent); background: rgba(31, 174, 99, 0.12); }
+.group-header .expand-arrow {
+  width: 1.1rem;
+  flex-shrink: 0;
+  text-align: center;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+.group-header .expand-arrow.expanded { transform: rotate(90deg); }
+.group-header .group-name {
+  font-weight: 500;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.group-header .group-count { color: var(--text-dim); font-size: 0.75rem; flex-shrink: 0; }
+.group-members {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding-left: 1.5rem;
+  margin-top: 0.15rem;
+  margin-bottom: 0.15rem;
+}
 
 .device-list { display: flex; flex-direction: column; gap: 0.4rem; overflow-y: auto; }
 .device-row {

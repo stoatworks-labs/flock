@@ -22,11 +22,11 @@ group at once.
 *Real screenshots of flock running locally against the three seeded
 `device-mock` devices (see [Status](#status)) — not mockups.*
 
-**Overview** — device list grouped by tag on the left (a device can sit in
-more than one group), preview + settings in the center, discovery/add/local
-settings on the right:
+**Overview** — a nested group tree on the left (a device can sit in more
+than one group, and appears under each), preview + settings in the center,
+discovery/add/local settings on the right:
 
-![flock overview: three devices grouped by tag, no device selected yet](docs/screenshots/overview.png)
+![flock overview: nested group tree with devices under All devices/backup/lobby/primary/stage, no device selected yet](docs/screenshots/overview.png)
 
 **Status** tab — the per-device dashboard:
 
@@ -46,10 +46,12 @@ audio, and tally (Play is decode-only, so there is no Encode tab):
 
 ![flock System tab showing firmware version and Access Manager fields](docs/screenshots/system.png)
 
-**Batch edit** — select a group chip, click "Batch edit", and every field
-starts blank/"leave unchanged"; only fields you actually fill in are sent,
-merged into each member device's own current settings rather than
-overwriting the whole group with a shared template:
+**Batch edit** — groups are a nested tree in the left panel; click a
+group's header to batch-edit every member at once, or expand it to drill
+into an individual device. Every field starts blank/"leave unchanged"; only
+fields you actually fill in are sent, merged into each member device's own
+current settings rather than overwriting the whole group with a shared
+template:
 
 ![flock batch-editing the Network tab for a two-device group, all fields blank except one changed field](docs/screenshots/batch.png)
 
@@ -68,10 +70,13 @@ overwriting the whole group with a shared template:
   (Dashboard), Network, Decode (NDI source + failover), and System
   (password/firmware/Access Manager/UI mode) — every field visible directly
   in its tab, nothing behind a submenu.
-- **Batch edit by group**: apply a Network/Decode/System change to every
-  device in a group at once. Blank fields mean "leave unchanged" — a batch
-  save merges into each device's own current settings rather than
-  clobbering the whole group with one shared template.
+- **Nested groups, one click to batch-edit**: groups are a vertical tree in
+  the left panel (a device can sit in more than one, appearing under each);
+  click a group's header to apply a Network/Decode/System change to every
+  member at once, or expand it to drill into an individual device. Blank
+  fields mean "leave unchanged" — a batch save merges into each device's own
+  current settings rather than clobbering the whole group with one shared
+  template.
 - **NDI Discovery Server, fleet-wide**: set it once in Local App Settings and
   push it to every registered Play's own Network settings in one click
   (flock can't itself query a Discovery Server — no public protocol spec —
