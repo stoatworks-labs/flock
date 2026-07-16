@@ -1,0 +1,1284 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+
+ <title>unknown</title>
+  <meta name="description" content="BirdDog">
+  <meta name="author" content="Antmicro Ltd">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="shortcut icon" href="#">
+  <script src="static/jquery-3.2.1.min.js"></script>
+  <link rel="stylesheet" href="static/font-awesome.min.css">
+  <script src="static/d3.min.js"></script>
+  <script src="static/jquery211.min.js"></script>
+  <script src="static/jquery.min.js"></script>
+  <script src="static/jquery351.min.js"></script>
+  <meta name="google" content="notranslate" />
+  <link rel="stylesheet" href="static/bootstrap.min.css">
+  <script src="static/popper.min.js"></script>
+  <script src="static/bootstrap42521.min.js"></script>
+  <link rel="stylesheet" href="static/styles.css?v=3.0">
+  <link rel="stylesheet" href="static/colour-control-style.css">
+ 
+    <script>
+function setCookie(c_name, value, exdays) {
+    var exdate = new Date();
+    exdate.setDate(exdate.getDate() + exdays);
+    var c_value = escape(value) + ((exdays == null) ? "" : "; expires=" + exdate.toUTCString());
+    document.cookie = c_name + "=" + c_value;
+}
+
+if ( window.history.replaceState ) {
+  window.history.replaceState( null, null, window.location.href );
+}
+  </script>
+  <script>
+function getCookie(c_name) {
+    var i, x, y, ARRcookies = document.cookie.split(";");
+    for (i = 0; i < ARRcookies.length; i++) {
+        x = ARRcookies[i].substr(0, ARRcookies[i].indexOf("="));
+        y = ARRcookies[i].substr(ARRcookies[i].indexOf("=") + 1);
+        x = x.replace(/^\s+|\s+$/g, "");
+        if (x == c_name) {
+            return unescape(y);
+        }
+    }
+}
+
+  </script>
+  
+  <script>
+    function hideNetFields(c) {
+      for (var i = 0; i < document.getElementsByClassName(c).length; i++) {
+        document.getElementsByClassName(c)[i].disabled = true;
+      }
+    }
+  </script>
+  <script>
+    function showNetFields(c) {
+      for (var i = 0; i < document.getElementsByClassName(c).length; i++) {
+        document.getElementsByClassName(c)[i].disabled = false;
+      }
+    }
+  </script>
+  <script>
+    function updateUploadLabel() {
+      var btn = document.getElementById('update_file_submit');
+      var file = "Choose file...";
+      var files = document.getElementById('update_file').files;
+      if (files[0]) {
+        file = files[0].name;
+        btn.disabled = false;
+      } else {
+        btn.disabled = true;
+      }
+      document.getElementById('update_file_name').innerText = file;
+    }
+  </script>
+  <script>
+    function updateIpConfig() {
+      var btn = document.getElementById('update_configfile_submit');
+      var file = "Choose file...";
+      var files = document.getElementById('update_configfile').files;
+      if (files[0]) {
+        file = files[0].name;
+        btn.disabled = false;
+      } else {
+        btn.disabled = true;
+      }
+      document.getElementById('update_configfile_name').innerText = file;
+    }
+  </script>
+  
+   <script>
+    function updateIpgroup() {
+      var btn = document.getElementById('update_groupfile_submit');
+      var file = "Choose file...";
+      var files = document.getElementById('update_groupfile').files;
+      if (files[0]) {
+        file = files[0].name;
+        btn.disabled = false;
+      } else {
+        btn.disabled = true;
+      }
+      document.getElementById('update_groupfile_name').innerText = file;
+    }
+  </script>
+  
+  <script>
+    function groupHider(id) {
+      var elems;
+      var inputsQ;
+      var inputs;
+
+      inputsQ = id.substring(0, id.length - 6);
+
+      elems = document.querySelectorAll('div[id^="video-param-grp-"]');
+      inputs = document.querySelectorAll('div[id^=' + inputsQ + '] [id$=input]');
+
+      for(i = 0; i < elems.length; i++) {
+        if ( id.indexOf(elems[i].id) !== -1 ) {
+          elems[i].className = "video-param";
+        } else {
+          elems[i].className = "video-param-hidden";
+        }
+      }
+
+      for(i = 0; i < inputs.length; i++) {
+        if (i == 0) {
+           
+          inputs[i].checked = true;
+          groupHider(inputs[i].id);
+        } else {
+          inputs[i].checked = false;
+        }
+      }
+    }
+  </script>
+  <script>
+  
+		var svg ;
+
+        function drawProgress(end, col, key){ 
+		
+		var wrapper;
+		
+		if(key == "sys_info_perc"){
+		wrapper = document.getElementById('radialprogress');
+		d3.select(wrapper.firstChild).remove() 
+		}else{
+		wrapper = document.getElementById('radialprogressnet');
+		d3.select(wrapper.firstChild).remove() 
+		}
+		
+		var start = 0;
+         
+        var colours = {
+          fill: col,
+          track: 'rgb(29, 31, 33)',
+          text: '#FFFFFF',
+          stroke: '#FFFFFF',
+        }
+        
+        var radius = 50;
+        var border = 12;
+        var strokeSpacing = 0;
+        var endAngle = Math.PI * 2;
+        var formatText = d3.format('.0%');
+        var boxSize = radius * 2;
+        var count = end;
+        var progress = start;
+        var step = end < start ? -0.01 : 0.01;
+        
+        
+        var circle = d3.svg.arc()
+          .startAngle(0)
+          .innerRadius(radius)
+          .outerRadius(radius - border);
+        
+        
+        svg = d3.select(wrapper)
+          .append('svg')
+          .attr('width', "60%")
+          .attr('class', "m-4")
+		  .attr("viewBox", `0 0 100 100`)
+        
+          
+        
+        var g = svg.append('g')
+          .attr('transform', 'translate(' + boxSize / 2 + ',' + boxSize / 2 + ')');
+        
+        
+        var track = g.append('g').attr('class', 'radial-progress');
+        track.append('path')
+          .attr('fill', colours.track)
+          .attr('stroke', colours.stroke)
+          .attr('stroke-width', strokeSpacing + 'px')
+          .attr('d', circle.endAngle(endAngle));
+        
+        
+        var value = track.append('path')
+          .attr('fill', colours.fill)
+          .attr('stroke', colours.stroke)
+          .attr('stroke-width', strokeSpacing + 'px');
+        
+        
+        var numberText = track.append('text')
+          .attr('fill', colours.text)
+          .attr('text-anchor', 'middle')
+          .attr('font-family', 'BirdDogRegularFont, Lato, Arial, sans-serif')
+          .attr('dy', '.4rem'); 
+        
+          
+          value.attr('d', circle.endAngle(endAngle * end));
+          
+          numberText.text(formatText(end));
+          
+        }
+		
+		function dashboard_dev_mode(val){
+		if (document.getElementById('de_mode') != null){
+		document.getElementById('de_mode').innerText = val;
+		 }
+		}
+		
+		function dashboard_src_status(val){
+		if (document.getElementById('sr_stat') != null){
+		document.getElementById('sr_stat').innerText = val;
+		 }
+		}
+		 
+</script>
+  <script>
+    function gonmessage(event) {
+      var box;
+      if (event.data == null) {
+        return;
+      }
+      var input = JSON.parse(event.data);
+      for (var key in input) {
+	   box = document.getElementById(key);
+	   if(key == "sys_info_perc"){
+		if (box != null) {
+          box.value = input[key];
+		  drawProgress(box.value/100,'#3366ff',"sys_info_perc")
+		 }
+		}else if(key == "net_band_perc"){
+		 if (box != null) {
+          box.value = input[key];
+		  drawProgress(box.value/100,"#7400ff","net_band_perc")
+		 }
+		}
+		else if(key == "dev_mode"){
+		 if (box != null) {
+		  box.innerText = input[key];
+		  dashboard_dev_mode(input[key])
+		 }
+		}
+		else if(key == "src_stat"){
+		 if (box != null) {
+		  box.innerText = input[key];
+		  dashboard_src_status(input[key])
+		 }
+		}
+		else{
+		  if (box != null) {
+          box.innerText = input[key];
+         }
+		}
+      }
+    }
+    
+    var updaterSocket;
+    updaterSocket = new WebSocket("ws:\/\/192.168.1.40:6790");
+    updaterSocket.onmessage = gonmessage;
+    
+    
+  </script>
+</head>
+
+<body>
+    
+  <div id="myModal" class="modal">
+  
+    
+    <div class="modal-content">
+      <div class="modal-header">
+        <span class="close">&times;</span>
+      </div>
+      <div class="modal-body" style="word-wrap: break-word;">
+	  <a class="popup_msg d-none" href="/logout">
+        <p class="m-0 p-3">Login</p>
+		</a>
+		 <p class="err_msg m-0 p-3 d-none"/>
+      </div>
+	  <div class="popup_submit text-center back_gray_color d-none pb-2">
+	     <form enctype="multipart/form-data" method="post">
+		 <button onchange='this.form.submit();'  value="Manual" name="BandwidthMode">OK</button>
+		 </form>
+	  </div>
+	  <div class="popup_enc1_submit text-center back_gray_color d-none pb-2">
+	     <form enctype="multipart/form-data" method="post">
+		 <button onchange='this.form.submit();'  value="Manual" name="encode1_BandwidthMode">OK</button>
+		 </form>
+	  </div>
+	  <div class="popup_enc2_submit text-center back_gray_color d-none pb-2">
+	     <form enctype="multipart/form-data" method="post">
+		 <button onchange='this.form.submit();'  value="Manual" name="encode2_BandwidthMode">OK</button>
+		 </form>
+	  </div>
+	  <div class="popup_enc3_submit text-center back_gray_color d-none pb-2">
+	     <form enctype="multipart/form-data" method="post">
+		 <button onchange='this.form.submit();'  value="Manual" name="encode3_BandwidthMode">OK</button>
+		 </form>
+	  </div>
+	  <div class="popup_div_submit text-center back_gray_color d-none pb-2">
+	     <form enctype="multipart/form-data" method="post">
+		 <button onchange='this.form.submit();'  value="LowLatency" name="videooutput">OK</button>
+		 </form>
+	  </div>
+    </div>
+  
+  </div>
+  
+  <div class="cm_main_display">
+  
+  <div class="row m-0 p-0">
+  
+  <div class="col-xl-3 m-0 p-0 back_gray_color d-none d-xl-block" >
+         
+          <div id="sidebar_BDlogo" class="p-2">
+            <div style="text-align: center;">
+              <a href="/"><img src="/static/main-left-side/BirdDog-logo_170x52.svg" style="height: 50px;"></a>
+            </div>
+		</div>
+  </div>
+  <div class="col-xl-9 m-0 p-0">
+        <div id="cm_right_navtab" class="back_dark_gray_color p-0">
+          <div style="padding-top: 10px !important; height: 70px; width:50%;">
+            <div class="m-0 p-0 pl-3" style="display:none;" id="DB_logo" data-toggle="modal" data-target="#modal_version">
+              <img src="/static/top-bar/DB_icon_52x52.svg" style="height: 50px;" />
+            </div>
+			 <div class="m-0 p-0 pl-3 d-inline-block d-xl-none" id="btn_menu">
+              <img src="/static/general/menu-open.svg" style="height: 50px;" />
+            </div>
+            <div id="logo_title" class="d-xl-inline-block">
+			
+			<div class="top-menu-title">BirdDog Convertor</div>
+			
+              <div class="mt-1"> PLAY </div>
+              <div id="logo_on">
+                <div class="on_pointer" style="display:none;">
+                  <div class="on_pointer_inner"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="p-0 m-0" style="position: absolute; right: 0; top: 0; width:50%;">
+		    <div id="dev_status" class="d-none d-xl-inline-block" >
+			  <div class="top-menu-title">Device Mode:
+			  <span class="font_white_color ml-1" id="dev_mode">None</span></div>
+              <div class="mt-1 top-menu-title">Source Status:
+			  <span class="font_white_color" id="src_stat">None</span></div>
+            </div>
+            <div id="top_menu_button_group" class="pr-3">
+              <div style="text-align: right;" class="d-none d-sm-inline-block mr-2">
+                <div style="display:none;">System Info</div>
+                <div class="mt-1" style="display:none;">100% Operative</div>
+              </div>
+              <div class="d-inline-block" style="vertical-align: top; margin-top: 5px;">
+                
+                  
+                
+                <button id="btn_notification" class="btn_img" style="position: relative; visibility:hidden;">
+                  <img src="/static/top-bar/notification.svg" style="height: 30px;" />
+                  <div id="notification_on">
+                    <div class="on_pointer">
+                      <div class="on_pointer_inner"></div>
+                    </div>
+                  </div>
+                </button>
+                <button id="btn_chat" class="btn_img" style="position: relative; visibility:hidden;" data-toggle="modal" data-target="#modal_chat">
+                  <img src="/static/top-bar/chat_40x40.svg" style="height: 30px;" />
+                  <div id="chart_on">
+                    <div class="on_pointer">
+                      <div class="on_pointer_inner"></div>
+                    </div>
+                  </div>
+                </button>
+                <button onclick="window.location.href='/logout'" id="btn_logout" class="btn_img">
+				
+		        <img src="/static/top-bar/logout_40x40.svg" style="height: 30px;" />
+		        
+                </button>
+              </div>
+            </div>
+          </div>
+      </div>
+    </div>
+  
+  </div>
+    <div class="row m-0 p-0">
+	    
+      <div class="col-xl-3 m-0 p-0 back_gray_color d-none d-xl-block" id="cm_side_bar">
+        <div id="left_side">
+          <div id="sidebar_logo" class="p-2" style="height: 180px;">
+			 <div style="text-align: center;"><img src="/static/main-left-side/BirdDog%20PLAY.png" style="height: 150px;"></div>
+          </div>
+          <div>
+          <ul class="ul_sidemenu m-0 p-0"> 
+            <li class=''>
+              <a class="menu_disable" href="/dashboard" id="dashboard">
+                <div class="p-3 pl-4 pr-4">
+                  <img src="/static/main-left-side/dashboard_40x40.svg" class="menu_img default_img">
+                  <img src="/static/main-left-side/dashboard_hover_40x40.svg" class="menu_img active_img">
+                  <div class="menu_title">
+                    Dashboard                    
+                  </div>
+                </div>
+              </a>
+            </li>
+            <li class=''>
+              <a class="menu_disable" href="/network" id="network">
+                <div class="p-3 pl-4 pr-4">
+                  <img src="/static/main-left-side/network_40x40.svg" class="menu_img default_img">
+                  <img src="/static/main-left-side/network_hover_40x40.svg" class="menu_img active_img">
+                  <div class="menu_title">
+                    Network
+                  </div>
+                </div>
+              </a>              
+            </li>
+              <li class=' active '>
+			  <a class="menu_disable" href="/settings" id="settings">
+                <div class="p-3 pl-4 pr-4">
+                  <img src="/static/main-left-side/system_40x40.svg" class="menu_img default_img">
+                  <img src="/static/main-left-side/system_hover_40x40.svg" class="menu_img active_img">
+                  <div class="menu_title">
+				   System
+                  </div>
+                </div>
+              </a>              
+              </li>
+			  
+             <li class='' >
+              <a class="menu_disable" href="/videoset" id="videoset">
+                <div class="p-3 pl-4 pr-4">
+                  <img src="/static/main-left-side/AV-setup_40x40.svg" class="menu_img default_img">
+                  <img src="/static/main-left-side/AV-setup_hover_40x40.svg" class="menu_img active_img">
+                  <div class="menu_title">
+                    AV Setup
+                  </div>
+                </div>
+              </a>              
+            </li>
+			<li class=''  style="display:none;" >
+              <a class="menu_disable" href="/camcontrol" id="camcontrol">
+                <div class="p-3 pl-4 pr-4">
+                  <img src="/static/main-left-side/CC_40x40.svg" class="menu_img default_img">
+                  <img src="/static/main-left-side/CC_hover_40x40.svg" class="menu_img active_img">
+                  <div class="menu_title">
+                    CamControl
+                  </div>
+                </div>
+              </a>              
+            </li>
+			<li class=''  style="display:none;" >
+              <a class="menu_disable" href="/recording" id="recording">
+                <div class="p-3 pl-4 pr-4">
+                  <img src="/static/main-left-side/rec-off.svg" class="menu_img default_img">
+                  <img src="/static/main-left-side/rec-hover.svg" class="menu_img active_img">
+                  <div class="menu_title">
+                    Recording
+                  </div>
+                </div>
+              </a>              
+            </li>
+			<li class=''  style="display:none;" >
+              <a class="menu_disable" href="/scope" id="scope">
+                <div class="p-3 pl-4 pr-4">
+                  <img src="/static/main-left-side/Scope_40x40.svg" class="menu_img default_img">
+                  <img src="/static/main-left-side/Scope_hover_40x40.svg" class="menu_img active_img">
+                  <div class="menu_title">
+                    Scopes
+                  </div>
+                </div>
+              </a>              
+            </li>
+            <li class="" style="display:none;">
+              <div class="p-3 pl-4 pr-4">
+                <img src="/static/main-left-side/support_40x40.svg" class="menu_img default_img">
+                <img src="/static/main-left-side/support_hover_40x40.svg" class="menu_img active_img">
+                <div class="menu_title">
+                  Support
+                </div>
+              </div>
+            </li>
+            <li class="" style="display:none;">
+              <div class="p-3 pl-4 pr-4">
+                <img src="/static/main-left-side/api-30x30.svg" class="menu_img default_img">
+                <img src="/static/main-left-side/api-30x30-hover.svg" class="menu_img active_img">
+                <div class="menu_title">
+                  App Settings
+                </div>
+              </div>
+            </li>
+            <li class="">
+			<a href="/logout">
+              <div class="p-3 pl-4 pr-4">
+			    
+		        <img src="/static/main-left-side/logout_40x40.svg" class="menu_img default_img">
+                <img src="/static/main-left-side/logout_hover_40x40.svg" class="menu_img active_img">
+                <div class="menu_title">
+                  Logout
+                </div>
+		        
+              </div>
+			  </a>
+            </li>
+          </ul>
+		  </div>
+          <div class="div_social p-4 mx-auto d-none d-xl-block back_gray_color">
+            <div class="row m-0 p-0" style="max-width: 500px; display: inline-table;">
+              <div class="div_social_button">
+                <a href="https://www.facebook.com/birddog.tv/" target="_blank">
+                  <button class="btn_img"><img src="/static/social/FB_40x40.svg"
+                      style="height: 35px;" /></button>
+                </a>
+              </div>
+              <div class="div_social_button">
+                <a href="https://twitter.com/bird_dog_gear?lang=en" target="_blank">
+                  <button class="btn_img"><img src="/static/social/TW_40x40.svg"
+                      style="height: 35px;" /></button>
+                </a>
+              </div>
+              <div class="div_social_button">
+                <a href="https://www.instagram.com/birddog.tv/" target="_blank">
+                  <button class="btn_img"><img src="/static/social/IG_40x40.svg"
+                      style="height: 35px;" /></button>
+                </a>
+              </div>
+              <div class="div_social_button">
+                <a href="https://www.youtube.com/channel/UCBQxUCeyg9vqNZ5tm54gbVg" target="_blank">
+                  <button class="btn_img"><img src="/static/social/YT_40x40.svg"
+                      style="height: 35px;" /></button>
+                </a>
+              </div>
+              <div class="div_social_button">
+                <a href="https://www.linkedin.com/company/birddog-australia/" target="_blank">
+                  <button class="btn_img"><img src="/static/social/IN_40x40.svg"
+                      style="height: 35px;" /></button>
+                </a>
+              </div>
+            </div>
+            <div class="mt-2">
+			<a href="https://birddog.tv/" target="_blank">
+              <button class="website btn_img font_gray_color">BirdDog.tv</button>
+			</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-xl-9 m-0 p-0" id="content_background">
+      
+        <div class="p-2" id="page_box">
+		
+		
+		
+<body onload="myFunction()">
+<div class="row m-0 p-0 row_in_page cm_h_lg_auto">
+    <div class="col-12 m-0 p-2 cm_h_lg_100">
+        <div class="div_content_box back_gray_color">
+            <div class="div_box_title border_bottom pl-3 pr-1">
+                <div class="div_subtitle" style="height: 100%; display: inline-block;">
+                    <span class="font_gray_color">Password Settings</span>
+                </div>
+                
+                    
+                
+            </div>
+
+            <div class="div_box_content">
+                <div class="cm_h_lg_100 v_center_parent">
+				<form enctype="multipart/form-data" id="settings_form" autocomplete="off" method="post">
+                    <div class="row m-0 p-0 pt-3 pb-3">
+                        <div class="col-xl-6 m-0 p-0 pr-xl-2">
+                            <div class="row m-0 p-1 pl-3">
+                                <div class="col-xl-5 m-0 p-0 my-auto">
+                                    Current Password
+                                </div>
+                                <div class="col-xl-7 m-0 p-0">
+                                    <div class="ele_common">
+                                        <input class="input_noback" style="width: 90%;" autofocus type="password" name="auth_password" id="auth_password"/>
+                                        <button class="btn_img cm_right_icon" type="button" onclick="pass_view()">
+                                            <img src="/static/general/eye.svg" style="height: 10px; margin-top: 3px; margin-right: 7px;" />
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row m-0 p-1 pl-3">
+                                <div class="col-xl-5 m-0 p-0 my-auto">
+                                    New Password
+                                </div>
+                                <div class="col-xl-7 m-0 p-0">
+                                    <div class="ele_common">
+                                        <input class="input_noback" style="width: 90%;" type="password" name="auth_password0" id="auth_password0"/>
+                                        <button class="btn_img cm_right_icon" type="button" onclick="newpass_view()">
+                                            <img src="/static/general/eye.svg" style="height: 10px; margin-top: 3px; margin-right: 7px;" />
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-xl-6 m-0 p-0 pl-xl-4">
+                            <div class="row m-0 p-1 pr-3">
+                                <div class="col-xl-5 m-0 p-0 my-auto">
+                                    Confirm Password
+                                </div>
+                                <div class="col-xl-7 m-0 p-0">
+                                    <div class="ele_common">
+                                        <input class="input_noback" style="width: 90%;" type="password" name="auth_password1" id="auth_password1"/>
+                                        <button class="btn_img cm_right_icon" type="button" onclick="confpass_view()">
+                                            <img src="/static/general/eye.svg" style="height: 10px; margin-top: 3px; margin-right: 7px;" />
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row m-0 p-1 pl-3 pr-3">
+                                <div class="col-xl-12 m-0 p-0" style="text-align: right;">
+                                    <button class="setting_submit" onmousedown="mouseDown(this)" onmouseup="mouseUp(this)" name="button" value="passwd" type="submit" form="settings_form">APPLY</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+				  </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row m-0 p-0 row_in_page cm_h_lg_auto">
+    <div class="col-xl-6 m-0 p-2 cm_h_lg_100">
+        <div class="div_content_box back_gray_color">
+            <div class="div_box_title border_bottom pl-3 pr-1">
+                <div class="div_subtitle" style="height: 100%; display: inline-block;">
+                    <span class="font_gray_color">System Update</span>
+                </div>
+                
+                    
+                
+            </div>
+            <div class="div_box_content">
+                <div class="cm_h_lg_100 v_center_parent">
+				 <form enctype="multipart/form-data" id="update_form" autocomplete="off" method="post">
+                    <div class="pt-3 pb-3">
+                        <div class="row m-0 p-1 pl-3 pr-3">
+                            <div class="col-xl-5 m-0 p-0"></div>
+                            <div class="col-xl-7 m-0 p-0">
+							<input type="file" onchange="updateUploadLabel()" value="Choose file..." id="update_file" name="update_file" />
+							<label class="tooltip" for="update_file" id="update_file_name"> CHOOSE FILE...</label>
+                           </div>
+                        </div>
+                        <div class="row m-0 p-1 pl-3 pr-3">
+                            <div class="col-xl-12 m-0 p-0" style="text-align: right;">
+                                <button class="setting_submit" onmousedown="mouseDown(this)" onmouseup="mouseUp(this)" disabled name="button" value="update" type="submit" id="update_file_submit" form="update_form">UPLOAD</button>
+                            </div>
+                        </div>
+                    </div>
+				  </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-6 m-0 p-2 cm_h_lg_100">
+        <div class="div_content_box back_gray_color">
+            <div class="div_box_title border_bottom pl-3 pr-1">
+                <div class="div_subtitle" style="height: 100%; display: inline-block;">
+                    <span class="font_gray_color">System Reboot</span>
+                </div>
+                
+                    
+                
+            </div>
+
+            <div class="div_box_content">
+                <div class="cm_h_lg_100 v_center_parent">
+                    <div class="row m-0 mt-1 p-0 pt-3 pb-3">
+                        <div class="col-xl-6 m-0 p-0">
+                            <div class="row m-0 p-1 pl-3 pr-3">
+                                <div class="col-xl-5 m-0 p-0">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-xl-6 m-0 p-0">
+                            <div class="row m-0 p-1 pl-3 pr-3">
+                                 <div class="col-xl-12 m-0 p-0" style="text-align: right;">
+                                    <a href="/reboot"> <button class="setting_submit" onmousedown="mouseDown(this)" onmouseup="mouseUp(this)" name="button">REBOOT</button></a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+					 <div class="row m-0 p-0 pt-1 pb-1" style="visibility:hidden;">
+                        <div class="col-xl-6 m-0 p-0">
+                            <div class="row m-0 p-1 pl-3 pr-3">
+                                <div class="col-xl-5 m-0 p-0">
+                                    N/A
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-xl-6 m-0 p-0">
+                            <div class="row m-0 p-1 pl-3 pr-3">
+                                 <div class="col-xl-12 m-0 p-0" style="text-align: right;">
+                                   <a> <button class="setting_submit" onmousedown="mouseDown(this)" onmouseup="mouseUp(this)" name="button">N/A</button></a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row m-0 p-0 row_in_page cm_h_lg_auto">
+    <div class="col-12 m-0 p-2 cm_h_lg_100">
+        <div class="div_content_box back_gray_color">
+            <div class="div_box_title border_bottom pl-3 pr-1">
+                <div class="div_subtitle" style="height: 100%; display: inline-block;">
+                    <span class="font_gray_color">Access Manager Configuration</span>
+                </div>
+                
+                    
+                
+            </div>
+			
+			<div class="div_box_content">
+                <div class="row m-0 p-0 cm_h_lg_100">
+                    <div class="col-12 m-0 p-0 v_center_parent">
+                        <div class="p-3 v_center_child__">
+						 <form enctype="multipart/form-data" id="update_config_form" autocomplete="off" method="post">
+                            <div class="row m-0 p-0">
+                                <div class="col-xl-6 m-0 p-0 pr-xl-2">
+                                    <div>
+                                        <div class="row m-0">
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+											 Remote IP Address List:
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+                                                <div class="row m-0 p-0">
+                                                           <input type="file" onchange="updateIpConfig()" value="Choose file..." id="update_configfile" name="update_configfile" />
+															<label class="tooltip" for="update_configfile" id="update_configfile_name">CHOOSE FILE...
+															<span class="tooltiptext">Must be UTF-8 encoded file example: "192.168.1.2","192.168.101.3"</span></label>
+                                                </div>     
+                                            </div>
+                                        </div>
+                                        <div class="row m-0 pt-2">
+                                            <div class="col-xl-5 m-0 p-0">
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+                                                     <div class="row m-0 p-0">
+                                                    <div class="col-6 m-0 p-0 pr-1">
+                                                        <button class="restart" onmousedown="mouseDown(this)" onmouseup="mouseUp(this)" onclick="config_download()">SAVE</button>
+                                                    </div>
+                                                    <div class="col-6 m-0 p-0 pl-1">
+                                                        <button class="restart" onmousedown="mouseDown(this)" onmouseup="mouseUp(this)" disabled name="button" value="updateConfig" type="submit" id="update_configfile_submit" form="update_config_form">UPLOAD</button>
+                                                    </div>
+                                                </div>  
+                                            </div>
+                                        </div>
+										<div class="col-xl-7 mt-2 mb-2 p-0" style="height:100px; overflow: auto;">
+                                                  <ol id="ndioffsnsrc"></ol>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-xl-6 m-0 p-0 pl-xl-4">
+                                    <div>
+                                        <div class="row m-0">
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+											NDI Group List:
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+                                                <div class="row m-0 p-0">
+                                                           <input type="file" onchange="updateIpgroup()" value="Choose file..." id="update_groupfile" name="update_groupfile" />
+															<label class="tooltip" for="update_groupfile" id="update_groupfile_name">CHOOSE FILE...
+														    <span class="tooltiptext">Must be UTF-8 encoded file example: "group1","group2"</span></label>
+                                                </div>     
+                                            </div>
+                                        </div>
+                                       <div class="row m-0 pt-2">
+                                            <div class="col-xl-5 m-0 p-0">
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+                                                     <div class="row m-0 p-0">
+                                                    <div class="col-6 m-0 p-0 pr-1">
+                                                          <button class="restart" onmousedown="mouseDown(this)" onmouseup="mouseUp(this)" onclick="groupName_download()">SAVE</button>
+                                                    </div>
+                                                    <div class="col-6 m-0 p-0 pl-1">
+                                                         <button class="restart" onmousedown="mouseDown(this)" onmouseup="mouseUp(this)" disabled name="button" value="updategroup" type="submit" id="update_groupfile_submit" form="update_config_form">UPLOAD</button>
+                                                    </div>
+                                                </div>  
+                                            </div>
+                                        </div> 
+										<div class="col-xl-7 mt-2 mb-2 p-0" style="height:100px; overflow: auto;">
+                                                <ol id="ndigrpname"></ol> 
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+							</form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+
+<script>
+
+		var config;
+		var grpname;
+
+		function myFunction() {
+		$.get('http://' + "192.168.1.40" + ':8080/NdiOffSnSrc', function (data) {
+			config = data;
+			var ele = document.getElementById('ndioffsnsrc');
+			var arr = data.split(',');
+			if(arr.length > 0) {
+            
+            $.each(arr, function(index, value){
+				ele.innerHTML = ele.innerHTML + '<li>' + value +'</li>';
+            });
+			} else {
+				console.log("no data");
+            
+              ele.innerHTML = '<li>' + "None" +'</li>';
+			}
+			
+		    });
+
+		    $.get('http://' + "192.168.1.40" + ':8080/NdiGrpName', function (data) {
+			grpname = data;
+			var ele = document.getElementById('ndigrpname');
+			var arr = data.split(',');
+			if(arr.length > 0) {
+            
+            $.each(arr, function(index, value){
+				ele.innerHTML = ele.innerHTML + '<li>' + value.replace(/"/g, '') +'</li>';
+            });
+			} else {
+            
+              ele.innerHTML = '<li>' + 'None' +'</li>';
+			}
+			
+		});	
+		
+        };
+		
+		function pass_view() {
+          var x = document.getElementById("auth_password");
+          if (x.type === "password") {
+            x.type = "text";
+			x.style.padding = 0;
+			x.style.border = "none";
+          } else {
+            x.type = "password";
+         }
+        }
+		
+		function newpass_view() {
+          var x = document.getElementById("auth_password0");
+          if (x.type === "password") {
+            x.type = "text";
+			x.style.padding = 0;
+			x.style.border = "none";
+          } else {
+            x.type = "password";
+         }
+        }
+		
+		function confpass_view() {
+          var x = document.getElementById("auth_password1");
+          if (x.type === "password") {
+            x.type = "text";
+			x.style.padding = 0;
+			x.style.border = "none";
+          } else {
+            x.type = "password";
+         }
+        }
+
+             function download(filename, text) {
+             var element = document.createElement('a');
+             element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
+             element.setAttribute('download', filename);
+             
+             element.style.display = 'none';
+             document.body.appendChild(element);
+             
+             element.click();
+             
+             document.body.removeChild(element);
+             }
+
+            function config_download(){
+			  
+               download("Config.txt",config);
+			}
+
+            function groupName_download(){
+			    
+                download("GroupName.txt",grpname);
+			}
+			
+			function mouseDown(ele) {
+			ele.style.background = "rgb(34, 178, 76)"; 
+			}
+
+			function mouseUp(ele) {
+			ele.style.background = "rgb(29, 31, 33)";
+			}
+	
+</script>
+
+ 
+		
+		
+        </div>
+
+        <div class="div_social p-4 mx-auto d-block d-xl-none">
+          <div style="max-width: 400px; display: inline-table;">
+            <div class="div_social_button">
+              <a href="https://www.facebook.com/birddog.tv/" target="_blank">
+                <button class="btn_img"><img src="/static/social/FB_40x40.svg"
+                    style="height: 35px;" /></button>
+              </a>
+            </div>
+            <div class="div_social_button">
+              <a href="https://twitter.com/bird_dog_gear?lang=en" target="_blank">
+                <button class="btn_img"><img src="/static/social/TW_40x40.svg"
+                    style="height: 35px;" /></button>
+              </a>
+            </div>
+            <div class="div_social_button">
+              <a href="https://www.instagram.com/birddog.tv/" target="_blank">
+                <button class="btn_img"><img src="/static/social/IG_40x40.svg"
+                    style="height: 35px;" /></button>
+              </a>
+            </div>
+            <div class="div_social_button">
+              <a href="https://www.youtube.com/channel/UCBQxUCeyg9vqNZ5tm54gbVg" target="_blank">
+                <button class="btn_img"><img src="/static/social/YT_40x40.svg"
+                    style="height: 35px;" /></button>
+              </a>
+            </div>
+            <div class="div_social_button">
+              <a href="https://www.linkedin.com/company/birddog-australia/" target="_blank">
+                <button class="btn_img"><img src="/static/social/IN_40x40.svg"
+                    style="height: 35px;" /></button>
+              </a>
+            </div>
+          </div>
+          <div class="mt-2">
+			<a href="https://birddog.tv/" target="_blank">
+              <button class="website btn_img font_gray_color">BirdDog.tv</button>
+			</a>
+            </div>
+        </div>
+
+      </div>
+    </div>
+  
+  </div>
+
+  <div class="modal fade" id="modal_version" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-sm">
+      <div class="modal-content back_dark_gray_color">
+        <div class="modal-body">
+          <div class="mx-auto">
+            <span class="font_white_color">Dashboard Version </span>
+            <span class="font_white_color" id="span_version">1.0</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade cm_right_modal" id="modal_chat" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="arrow-up" style="position: absolute; top: Calc(70px + 1rem - 15px); right: Calc(50px + 1rem);"></div>
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content back_gray_color">
+        <div class="modal-body">
+          <div class="div_modal_tab">
+            <div class="row m-0 p-0">
+              <div class="col-md-6 col-xl-3 m-0 p-1">
+                <div class="btn_common btn_chat_tab active" target="div_new_ticket">
+                  NEW TICKET
+                </div>
+              </div>
+              <div class="col-md-6 col-xl-3 m-0 p-1">
+                <div class="btn_common btn_chat_tab" target="div_my_tickets">
+                  MY TICKETS
+                </div>
+              </div>
+              <div class="col-md-6 col-xl-3 m-0 p-1">
+                <div class="btn_common btn_chat_tab">
+                  SUPPORT PAGE
+                </div>
+              </div>
+              <div class="col-md-6 col-xl-3 m-0 p-1">
+                <div class="btn_common btn_chat_tab">
+                  OPEN FB GROUP
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="div_modal_tab_contents" id="div_chat_contents">
+
+            <div class="div_tab_contents" id="div_new_ticket">
+              <div class="row m-0 p-0">
+                <div class="col-xl-6 m-0 p-1">
+                  <div class="ele_common">
+                    First Name
+                  </div>
+                </div>
+                <div class="col-xl-6 m-0 p-1">
+                  <div class="ele_common">
+                    Last Name
+                  </div>
+                </div>
+                <div class="col-xl-6 m-0 p-1">
+                  <div class="ele_common">
+                    Email
+                  </div>
+                </div>
+                <div class="col-xl-6 m-0 p-1">
+                  <div class="ele_common">
+                    What Region are you in?
+                    <button class="btn_img cm_right_icon">
+                      <img src="/static/general/vertical-menu.svg" style="height: 30px;" />
+                    </button>
+                  </div>
+                </div>
+                <div class="col-12 m-0 p-1">
+                  <div class="ele_common">
+                    Ticket Title
+                  </div>
+                </div>
+                <div class="col-12 m-0 p-1">
+                  <div class="ele_common" style="height: 250px !important;">
+                    Ticket Details
+                  </div>
+                </div>
+              </div>
+              <div class="row m-0 p-0">
+                <div class="col-xl-6 m-0 p-1 d-none d-xl-inline-block"></div>
+                <div class="col-xl-3 m-0 p-1">
+                  <div class="btn_common">
+                    RESET
+                  </div>
+                </div>
+                <div class="col-xl-3 m-0 p-1">
+                  <div class="btn_common active">
+                    SUBMIT
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="div_tab_contents" id="div_my_tickets" style="display: none;">
+              <div class="row m-0 p-0">
+                <div class="col-xl-6 m-0 p-1">
+                  <div class="div_ticket_list">
+                    <div class="div_ticket_item p-3 pl-4 pr-4 active">
+                      <div class="row m-0 p-0">
+                        <div class="col-9 m-0 p-0">
+                          <div class="list_item_detail">
+                            <span class="first_line font_white_color">Ticket 04</span><br/>
+                            <span class="second_line">HDMI Settings</span>
+                          </div>
+                        </div>
+                        <div class="col-3 m-0 p-0 text-right">
+                          <div class="list_item_status mt-2">
+                            <span>OPEN</span>
+                            <div class="ticket_list_green_circle ml-2">1</div>
+                          </div>    
+                        </div>
+                      </div>                        
+                    </div>
+                    <div class="div_ticket_item p-3 pl-4 pr-4">
+                      <div class="row m-0 p-0">
+                        <div class="col-9 m-0 p-0">
+                          <div class="list_item_detail">
+                            <span class="first_line font_white_color">Ticket 03</span><br/>
+                            <span class="second_line">HDMI Settings</span>
+                          </div>
+                        </div>
+                        <div class="col-3 m-0 p-0 text-right">
+                          <div class="list_item_status mt-2">
+                            SOLVED
+                          </div>    
+                        </div>
+                      </div>    
+                    </div>
+                    <div class="div_ticket_item p-3 pl-4 pr-4">
+                      <div class="row m-0 p-0">
+                        <div class="col-9 m-0 p-0">
+                          <div class="list_item_detail">
+                            <span class="first_line font_white_color">Ticket 02</span><br/>
+                            <span class="second_line">HDMI Settings</span>
+                          </div>
+                        </div>
+                        <div class="col-3 m-0 p-0 text-right">
+                          <div class="list_item_status mt-2">
+                            SOLVED
+                          </div>    
+                        </div>
+                      </div>    
+                    </div>
+                    <div class="div_ticket_item p-3 pl-4 pr-4">
+                      <div class="row m-0 p-0">
+                        <div class="col-9 m-0 p-0">
+                          <div class="list_item_detail">
+                            <span class="first_line font_white_color">Ticket 01</span><br/>
+                            <span class="second_line">HDMI Settings</span>
+                          </div>
+                        </div>
+                        <div class="col-3 m-0 p-0 text-right">
+                          <div class="list_item_status mt-2">
+                            SOLVED
+                          </div>    
+                        </div>
+                      </div>    
+                    </div>
+                  </div>
+                </div>
+                <div class="col-xl-6 m-0 p-1">
+                  <div class="div_chat_container">
+                    <div class="div_chat_box">
+                      <div class="chat_content p-2">
+
+                        <div class="div_received_chat_row p-2">
+                          <div class="div_received_chat_box tri-right left-top">
+                            <span>Did you try to follow the manual first?</span>
+                          </div>
+                        </div>
+
+                        <div class="div_sent_chat_row p-2">
+                          <div class="div_sent_chat_box tri-right right-top">
+                            <span>No I didn't. <br> That's a good idea actually. </span>
+                          </div>
+                        </div>
+                        
+                        <div class="div_received_chat_row p-2">
+                          <div class="div_received_chat_box tri-right left-top">
+                            <span>Yeah, Please read the instruction at page 13. <br> Let me know. </span>
+                          </div>
+                        </div>
+
+                        <div class="div_sent_chat_row p-2">
+                          <div class="div_sent_chat_box tri-right right-top">
+                            <span>Ok. </span>
+                          </div>
+                        </div>
+
+                        <div class="div_received_chat_row p-2">
+                          <div class="div_received_chat_box tri-right left-top">
+                            <span>Did you try to follow the manual first?</span>
+                          </div>
+                        </div>
+
+                        <div class="div_sent_chat_row p-2">
+                          <div class="div_sent_chat_box tri-right right-top">
+                            <span>No I didn't. <br> That's a good idea actually. </span>
+                          </div>
+                        </div>
+                        
+                        <div class="div_received_chat_row p-2">
+                          <div class="div_received_chat_box tri-right left-top">
+                            <span>Yeah, Please read the instruction at page 13. <br> Let me know. </span>
+                          </div>
+                        </div>
+
+                        <div class="div_sent_chat_row p-2">
+                          <div class="div_sent_chat_box tri-right right-top">
+                            <span>Ok. </span>
+                          </div>
+                        </div>
+
+                      </div>                      
+                    </div>  
+
+                    <div class="div_chat_text p-2">
+                      <div class="btn_blank">
+                        <input style="width: 100%;" placeholder="Type a message..." />
+                      </div>
+                    </div>                 
+                  </div>
+                  <div class="row m-0 p-0 pt-2">
+                    <div class="col-6 m-0 p-0"></div>
+                    <div class="col-6 m-0 p-0">
+                        <div class="btn_common active">
+                            SEND
+                        </div>
+                    </div>
+                </div>    
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+
+<script>
+  $( document ).ready(function() { 
+    $(".btn_chat_tab").on("click", function(e){
+      var target = $(this).attr("target");
+      $(".btn_chat_tab").removeClass("active");
+      $(this).addClass("active");
+      $("#div_chat_contents .div_tab_contents").hide();
+      $("#div_chat_contents #"+target).show();
+    });
+
+    $("#btn_menu").on("click", function(){
+	if($("#cm_side_bar").css("display") == 'block'){
+	 $("#cm_side_bar").addClass("d-none");}else{
+	 $("#cm_side_bar").removeClass("d-none");
+	 }
+    });
+  });
+  if("" == "false"){
+    $('.menu_disable').click(function(e){
+    e.preventDefault()
+	document.cookie = "Page="+this.id;
+	console.log(getCookie("Page"));
+	var modal = document.getElementById("myModal");
+	var span = document.getElementsByClassName("close")[0];
+	document.getElementsByClassName("modal-content")[0].style.width = '25%';
+	$(".popup_msg").removeClass("d-none");
+	modal.style.display = "block";
+	
+	  span.onclick = function() {
+      modal.style.display = "none";
+      }
+	  
+	  
+      window.onclick = function(event) {
+        if (event.target == modal) {
+          modal.style.display = "none";
+        }
+      }
+	
+    })
+  }
+  
+  function getCookie(name) {
+    var cname = name + "=";
+    var decodedCookie = decodeURIComponent(document.cookie);
+    var ca = decodedCookie.split(';');
+    for(var i = 0; i < ca.length; i++){
+        var c = ca[i];
+        while(c.charAt(0) == ' '){
+            c = c.substring(1);
+        }
+        if(c.indexOf(cname) == 0){
+            return c.substring(cname.length, c.length);
+        }
+    }
+    return "";
+}
+  
+  </script>
+
+</html>

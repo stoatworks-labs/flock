@@ -12,6 +12,7 @@ path = "src/main.rs"
 flock-core = { path = "../core" }
 flock-discovery = { path = "../discovery" }
 flock-device-mock = { path = "../device-mock" }
+flock-device-http = { path = "../device-http" }
 flock-web = { path = "../web" }
 axum.workspace = true
 tokio.workspace = true

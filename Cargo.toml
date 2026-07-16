@@ -4,6 +4,7 @@ members = [
     "crates/core",
     "crates/discovery",
     "crates/device-mock",
+    "crates/device-http",
     "crates/web",
     "crates/flock",
 ]
@@ -11,6 +12,7 @@ default-members = [
     "crates/core",
     "crates/discovery",
     "crates/device-mock",
+    "crates/device-http",
     "crates/web",
     "crates/flock",
 ]
@@ -34,3 +36,5 @@ axum = { version = "0.7", features = ["ws"] }
 tower-http = { version = "0.5", features = ["fs", "trace"] }
 uuid = { version = "1", features = ["v4", "serde"] }
 mdns-sd = "0.11"
+reqwest = { version = "0.12", default-features = false, features = ["cookies", "rustls-tls", "multipart"] }
+scraper = "0.20"

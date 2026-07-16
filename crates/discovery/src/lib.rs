@@ -1,12 +1,21 @@
-//! LAN discovery of candidate BirdDog Play hosts via mDNS, reusing the
-//! `mdns-sd` crate/pattern already proven in the Dante-BabelBox project.
+//! LAN discovery of candidate BirdDog Play hosts.
 //!
-//! The exact mDNS service type a real Play advertises is unconfirmed (see
-//! docs/architecture.md) - `_ndi._tcp.local.` is the one standard, documented
-//! service type in the research this project is based on. Manual add in the
-//! UI is always available regardless of what discovery finds, so an
-//! incorrect/incomplete service type here degrades gracefully rather than
-//! blocking device setup.
+//! Two independent mechanisms feed into `Discovery::scan`:
+//! - An mDNS browse for `_ndi._tcp.local.` (via `mdns-sd`, the pattern
+//!   already proven in the Dante-BabelBox project) - catches genuine NDI
+//!   sources on the network. Confirmed *not* to catch a real Play itself
+//!   (see `subnet_probe` and docs/architecture.md) but kept since it's
+//!   harmless and may catch other NDI gear worth surfacing.
+//! - An active subnet probe (`subnet_probe`) that's the actual way a real
+//!   Play gets found: it doesn't advertise any mDNS service, so flock
+//!   sweeps the local subnet and checks each host's `GET /` for BirdUI's
+//!   signature instead.
+//!
+//! Manual add in the UI is always available regardless of what either
+//! mechanism finds, so gaps here degrade gracefully rather than blocking
+//! device setup.
+
+mod subnet_probe;
 
 use mdns_sd::{ServiceDaemon, ServiceEvent};
 use serde::Serialize;
@@ -32,9 +41,28 @@ impl Discovery {
         })
     }
 
-    /// Browses for up to `timeout` and returns whatever responded in that
-    /// window. Safe to call repeatedly (each call re-browses).
+    /// Runs the mDNS browse (bounded by `timeout`) and the subnet probe
+    /// concurrently and returns the merged, deduped result. Safe to call
+    /// repeatedly.
     pub async fn scan(&self, timeout: Duration) -> anyhow::Result<Vec<DiscoveredHost>> {
+        let (mdns_result, probe_result) =
+            tokio::join!(self.scan_mdns(timeout), subnet_probe::probe_lan());
+
+        let mut found = mdns_result.unwrap_or_else(|e| {
+            tracing::warn!("mDNS scan failed: {e:#}");
+            vec![]
+        });
+        found.extend(probe_result.unwrap_or_else(|e| {
+            tracing::warn!("subnet probe failed: {e:#}");
+            vec![]
+        }));
+
+        found.sort_by(|a, b| a.host.cmp(&b.host));
+        found.dedup_by(|a, b| a.host == b.host);
+        Ok(found)
+    }
+
+    async fn scan_mdns(&self, timeout: Duration) -> anyhow::Result<Vec<DiscoveredHost>> {
         let receiver = self.daemon.browse(SERVICE_TYPE)?;
         let mut found = Vec::new();
         let deadline = tokio::time::Instant::now() + timeout;
@@ -58,8 +86,6 @@ impl Discovery {
         }
 
         let _ = self.daemon.stop_browse(SERVICE_TYPE);
-        found.sort_by(|a, b| a.name.cmp(&b.name));
-        found.dedup_by(|a, b| a.host == b.host);
         Ok(found)
     }
 }

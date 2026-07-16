@@ -1,0 +1,3022 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+
+ <title>unknown</title>
+  <meta name="description" content="BirdDog">
+  <meta name="author" content="Antmicro Ltd">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="shortcut icon" href="#">
+  <script src="static/jquery-3.2.1.min.js"></script>
+  <link rel="stylesheet" href="static/font-awesome.min.css">
+  <script src="static/d3.min.js"></script>
+  <script src="static/jquery211.min.js"></script>
+  <script src="static/jquery.min.js"></script>
+  <script src="static/jquery351.min.js"></script>
+  <meta name="google" content="notranslate" />
+  <link rel="stylesheet" href="static/bootstrap.min.css">
+  <script src="static/popper.min.js"></script>
+  <script src="static/bootstrap42521.min.js"></script>
+  <link rel="stylesheet" href="static/styles.css?v=3.0">
+  <link rel="stylesheet" href="static/colour-control-style.css">
+ 
+    <script>
+function setCookie(c_name, value, exdays) {
+    var exdate = new Date();
+    exdate.setDate(exdate.getDate() + exdays);
+    var c_value = escape(value) + ((exdays == null) ? "" : "; expires=" + exdate.toUTCString());
+    document.cookie = c_name + "=" + c_value;
+}
+
+if ( window.history.replaceState ) {
+  window.history.replaceState( null, null, window.location.href );
+}
+  </script>
+  <script>
+function getCookie(c_name) {
+    var i, x, y, ARRcookies = document.cookie.split(";");
+    for (i = 0; i < ARRcookies.length; i++) {
+        x = ARRcookies[i].substr(0, ARRcookies[i].indexOf("="));
+        y = ARRcookies[i].substr(ARRcookies[i].indexOf("=") + 1);
+        x = x.replace(/^\s+|\s+$/g, "");
+        if (x == c_name) {
+            return unescape(y);
+        }
+    }
+}
+
+  </script>
+  
+  <script>
+    function hideNetFields(c) {
+      for (var i = 0; i < document.getElementsByClassName(c).length; i++) {
+        document.getElementsByClassName(c)[i].disabled = true;
+      }
+    }
+  </script>
+  <script>
+    function showNetFields(c) {
+      for (var i = 0; i < document.getElementsByClassName(c).length; i++) {
+        document.getElementsByClassName(c)[i].disabled = false;
+      }
+    }
+  </script>
+  <script>
+    function updateUploadLabel() {
+      var btn = document.getElementById('update_file_submit');
+      var file = "Choose file...";
+      var files = document.getElementById('update_file').files;
+      if (files[0]) {
+        file = files[0].name;
+        btn.disabled = false;
+      } else {
+        btn.disabled = true;
+      }
+      document.getElementById('update_file_name').innerText = file;
+    }
+  </script>
+  <script>
+    function updateIpConfig() {
+      var btn = document.getElementById('update_configfile_submit');
+      var file = "Choose file...";
+      var files = document.getElementById('update_configfile').files;
+      if (files[0]) {
+        file = files[0].name;
+        btn.disabled = false;
+      } else {
+        btn.disabled = true;
+      }
+      document.getElementById('update_configfile_name').innerText = file;
+    }
+  </script>
+  
+   <script>
+    function updateIpgroup() {
+      var btn = document.getElementById('update_groupfile_submit');
+      var file = "Choose file...";
+      var files = document.getElementById('update_groupfile').files;
+      if (files[0]) {
+        file = files[0].name;
+        btn.disabled = false;
+      } else {
+        btn.disabled = true;
+      }
+      document.getElementById('update_groupfile_name').innerText = file;
+    }
+  </script>
+  
+  <script>
+    function groupHider(id) {
+      var elems;
+      var inputsQ;
+      var inputs;
+
+      inputsQ = id.substring(0, id.length - 6);
+
+      elems = document.querySelectorAll('div[id^="video-param-grp-"]');
+      inputs = document.querySelectorAll('div[id^=' + inputsQ + '] [id$=input]');
+
+      for(i = 0; i < elems.length; i++) {
+        if ( id.indexOf(elems[i].id) !== -1 ) {
+          elems[i].className = "video-param";
+        } else {
+          elems[i].className = "video-param-hidden";
+        }
+      }
+
+      for(i = 0; i < inputs.length; i++) {
+        if (i == 0) {
+           
+          inputs[i].checked = true;
+          groupHider(inputs[i].id);
+        } else {
+          inputs[i].checked = false;
+        }
+      }
+    }
+  </script>
+  <script>
+  
+		var svg ;
+
+        function drawProgress(end, col, key){ 
+		
+		var wrapper;
+		
+		if(key == "sys_info_perc"){
+		wrapper = document.getElementById('radialprogress');
+		d3.select(wrapper.firstChild).remove() 
+		}else{
+		wrapper = document.getElementById('radialprogressnet');
+		d3.select(wrapper.firstChild).remove() 
+		}
+		
+		var start = 0;
+         
+        var colours = {
+          fill: col,
+          track: 'rgb(29, 31, 33)',
+          text: '#FFFFFF',
+          stroke: '#FFFFFF',
+        }
+        
+        var radius = 50;
+        var border = 12;
+        var strokeSpacing = 0;
+        var endAngle = Math.PI * 2;
+        var formatText = d3.format('.0%');
+        var boxSize = radius * 2;
+        var count = end;
+        var progress = start;
+        var step = end < start ? -0.01 : 0.01;
+        
+        
+        var circle = d3.svg.arc()
+          .startAngle(0)
+          .innerRadius(radius)
+          .outerRadius(radius - border);
+        
+        
+        svg = d3.select(wrapper)
+          .append('svg')
+          .attr('width', "60%")
+          .attr('class', "m-4")
+		  .attr("viewBox", `0 0 100 100`)
+        
+          
+        
+        var g = svg.append('g')
+          .attr('transform', 'translate(' + boxSize / 2 + ',' + boxSize / 2 + ')');
+        
+        
+        var track = g.append('g').attr('class', 'radial-progress');
+        track.append('path')
+          .attr('fill', colours.track)
+          .attr('stroke', colours.stroke)
+          .attr('stroke-width', strokeSpacing + 'px')
+          .attr('d', circle.endAngle(endAngle));
+        
+        
+        var value = track.append('path')
+          .attr('fill', colours.fill)
+          .attr('stroke', colours.stroke)
+          .attr('stroke-width', strokeSpacing + 'px');
+        
+        
+        var numberText = track.append('text')
+          .attr('fill', colours.text)
+          .attr('text-anchor', 'middle')
+          .attr('font-family', 'BirdDogRegularFont, Lato, Arial, sans-serif')
+          .attr('dy', '.4rem'); 
+        
+          
+          value.attr('d', circle.endAngle(endAngle * end));
+          
+          numberText.text(formatText(end));
+          
+        }
+		
+		function dashboard_dev_mode(val){
+		if (document.getElementById('de_mode') != null){
+		document.getElementById('de_mode').innerText = val;
+		 }
+		}
+		
+		function dashboard_src_status(val){
+		if (document.getElementById('sr_stat') != null){
+		document.getElementById('sr_stat').innerText = val;
+		 }
+		}
+		 
+</script>
+  <script>
+    function gonmessage(event) {
+      var box;
+      if (event.data == null) {
+        return;
+      }
+      var input = JSON.parse(event.data);
+      for (var key in input) {
+	   box = document.getElementById(key);
+	   if(key == "sys_info_perc"){
+		if (box != null) {
+          box.value = input[key];
+		  drawProgress(box.value/100,'#3366ff',"sys_info_perc")
+		 }
+		}else if(key == "net_band_perc"){
+		 if (box != null) {
+          box.value = input[key];
+		  drawProgress(box.value/100,"#7400ff","net_band_perc")
+		 }
+		}
+		else if(key == "dev_mode"){
+		 if (box != null) {
+		  box.innerText = input[key];
+		  dashboard_dev_mode(input[key])
+		 }
+		}
+		else if(key == "src_stat"){
+		 if (box != null) {
+		  box.innerText = input[key];
+		  dashboard_src_status(input[key])
+		 }
+		}
+		else{
+		  if (box != null) {
+          box.innerText = input[key];
+         }
+		}
+      }
+    }
+    
+    var updaterSocket;
+    updaterSocket = new WebSocket("ws:\/\/192.168.1.40:6790");
+    updaterSocket.onmessage = gonmessage;
+    
+    
+  </script>
+</head>
+
+<body>
+    
+  <div id="myModal" class="modal">
+  
+    
+    <div class="modal-content">
+      <div class="modal-header">
+        <span class="close">&times;</span>
+      </div>
+      <div class="modal-body" style="word-wrap: break-word;">
+	  <a class="popup_msg d-none" href="/logout">
+        <p class="m-0 p-3">Login</p>
+		</a>
+		 <p class="err_msg m-0 p-3 d-none"/>
+      </div>
+	  <div class="popup_submit text-center back_gray_color d-none pb-2">
+	     <form enctype="multipart/form-data" method="post">
+		 <button onchange='this.form.submit();'  value="Manual" name="BandwidthMode">OK</button>
+		 </form>
+	  </div>
+	  <div class="popup_enc1_submit text-center back_gray_color d-none pb-2">
+	     <form enctype="multipart/form-data" method="post">
+		 <button onchange='this.form.submit();'  value="Manual" name="encode1_BandwidthMode">OK</button>
+		 </form>
+	  </div>
+	  <div class="popup_enc2_submit text-center back_gray_color d-none pb-2">
+	     <form enctype="multipart/form-data" method="post">
+		 <button onchange='this.form.submit();'  value="Manual" name="encode2_BandwidthMode">OK</button>
+		 </form>
+	  </div>
+	  <div class="popup_enc3_submit text-center back_gray_color d-none pb-2">
+	     <form enctype="multipart/form-data" method="post">
+		 <button onchange='this.form.submit();'  value="Manual" name="encode3_BandwidthMode">OK</button>
+		 </form>
+	  </div>
+	  <div class="popup_div_submit text-center back_gray_color d-none pb-2">
+	     <form enctype="multipart/form-data" method="post">
+		 <button onchange='this.form.submit();'  value="LowLatency" name="videooutput">OK</button>
+		 </form>
+	  </div>
+    </div>
+  
+  </div>
+  
+  <div class="cm_main_display">
+  
+  <div class="row m-0 p-0">
+  
+  <div class="col-xl-3 m-0 p-0 back_gray_color d-none d-xl-block" >
+         
+          <div id="sidebar_BDlogo" class="p-2">
+            <div style="text-align: center;">
+              <a href="/"><img src="/static/main-left-side/BirdDog-logo_170x52.svg" style="height: 50px;"></a>
+            </div>
+		</div>
+  </div>
+  <div class="col-xl-9 m-0 p-0">
+        <div id="cm_right_navtab" class="back_dark_gray_color p-0">
+          <div style="padding-top: 10px !important; height: 70px; width:50%;">
+            <div class="m-0 p-0 pl-3" style="display:none;" id="DB_logo" data-toggle="modal" data-target="#modal_version">
+              <img src="/static/top-bar/DB_icon_52x52.svg" style="height: 50px;" />
+            </div>
+			 <div class="m-0 p-0 pl-3 d-inline-block d-xl-none" id="btn_menu">
+              <img src="/static/general/menu-open.svg" style="height: 50px;" />
+            </div>
+            <div id="logo_title" class="d-xl-inline-block">
+			
+			<div class="top-menu-title">BirdDog Convertor</div>
+			
+              <div class="mt-1"> PLAY </div>
+              <div id="logo_on">
+                <div class="on_pointer" style="display:none;">
+                  <div class="on_pointer_inner"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="p-0 m-0" style="position: absolute; right: 0; top: 0; width:50%;">
+		    <div id="dev_status" class="d-none d-xl-inline-block" >
+			  <div class="top-menu-title">Device Mode:
+			  <span class="font_white_color ml-1" id="dev_mode">None</span></div>
+              <div class="mt-1 top-menu-title">Source Status:
+			  <span class="font_white_color" id="src_stat">None</span></div>
+            </div>
+            <div id="top_menu_button_group" class="pr-3">
+              <div style="text-align: right;" class="d-none d-sm-inline-block mr-2">
+                <div style="display:none;">System Info</div>
+                <div class="mt-1" style="display:none;">100% Operative</div>
+              </div>
+              <div class="d-inline-block" style="vertical-align: top; margin-top: 5px;">
+                
+                  
+                
+                <button id="btn_notification" class="btn_img" style="position: relative; visibility:hidden;">
+                  <img src="/static/top-bar/notification.svg" style="height: 30px;" />
+                  <div id="notification_on">
+                    <div class="on_pointer">
+                      <div class="on_pointer_inner"></div>
+                    </div>
+                  </div>
+                </button>
+                <button id="btn_chat" class="btn_img" style="position: relative; visibility:hidden;" data-toggle="modal" data-target="#modal_chat">
+                  <img src="/static/top-bar/chat_40x40.svg" style="height: 30px;" />
+                  <div id="chart_on">
+                    <div class="on_pointer">
+                      <div class="on_pointer_inner"></div>
+                    </div>
+                  </div>
+                </button>
+                <button onclick="window.location.href='/logout'" id="btn_logout" class="btn_img">
+				
+		        <img src="/static/top-bar/logout_40x40.svg" style="height: 30px;" />
+		        
+                </button>
+              </div>
+            </div>
+          </div>
+      </div>
+    </div>
+  
+  </div>
+    <div class="row m-0 p-0">
+	    
+      <div class="col-xl-3 m-0 p-0 back_gray_color d-none d-xl-block" id="cm_side_bar">
+        <div id="left_side">
+          <div id="sidebar_logo" class="p-2" style="height: 180px;">
+			 <div style="text-align: center;"><img src="/static/main-left-side/BirdDog%20PLAY.png" style="height: 150px;"></div>
+          </div>
+          <div>
+          <ul class="ul_sidemenu m-0 p-0"> 
+            <li class=''>
+              <a class="menu_disable" href="/dashboard" id="dashboard">
+                <div class="p-3 pl-4 pr-4">
+                  <img src="/static/main-left-side/dashboard_40x40.svg" class="menu_img default_img">
+                  <img src="/static/main-left-side/dashboard_hover_40x40.svg" class="menu_img active_img">
+                  <div class="menu_title">
+                    Dashboard                    
+                  </div>
+                </div>
+              </a>
+            </li>
+            <li class=''>
+              <a class="menu_disable" href="/network" id="network">
+                <div class="p-3 pl-4 pr-4">
+                  <img src="/static/main-left-side/network_40x40.svg" class="menu_img default_img">
+                  <img src="/static/main-left-side/network_hover_40x40.svg" class="menu_img active_img">
+                  <div class="menu_title">
+                    Network
+                  </div>
+                </div>
+              </a>              
+            </li>
+              <li class=''>
+			  <a class="menu_disable" href="/settings" id="settings">
+                <div class="p-3 pl-4 pr-4">
+                  <img src="/static/main-left-side/system_40x40.svg" class="menu_img default_img">
+                  <img src="/static/main-left-side/system_hover_40x40.svg" class="menu_img active_img">
+                  <div class="menu_title">
+				   System
+                  </div>
+                </div>
+              </a>              
+              </li>
+			  
+             <li class=' active ' >
+              <a class="menu_disable" href="/videoset" id="videoset">
+                <div class="p-3 pl-4 pr-4">
+                  <img src="/static/main-left-side/AV-setup_40x40.svg" class="menu_img default_img">
+                  <img src="/static/main-left-side/AV-setup_hover_40x40.svg" class="menu_img active_img">
+                  <div class="menu_title">
+                    AV Setup
+                  </div>
+                </div>
+              </a>              
+            </li>
+			<li class=''  style="display:none;" >
+              <a class="menu_disable" href="/camcontrol" id="camcontrol">
+                <div class="p-3 pl-4 pr-4">
+                  <img src="/static/main-left-side/CC_40x40.svg" class="menu_img default_img">
+                  <img src="/static/main-left-side/CC_hover_40x40.svg" class="menu_img active_img">
+                  <div class="menu_title">
+                    CamControl
+                  </div>
+                </div>
+              </a>              
+            </li>
+			<li class=''  style="display:none;" >
+              <a class="menu_disable" href="/recording" id="recording">
+                <div class="p-3 pl-4 pr-4">
+                  <img src="/static/main-left-side/rec-off.svg" class="menu_img default_img">
+                  <img src="/static/main-left-side/rec-hover.svg" class="menu_img active_img">
+                  <div class="menu_title">
+                    Recording
+                  </div>
+                </div>
+              </a>              
+            </li>
+			<li class=''  style="display:none;" >
+              <a class="menu_disable" href="/scope" id="scope">
+                <div class="p-3 pl-4 pr-4">
+                  <img src="/static/main-left-side/Scope_40x40.svg" class="menu_img default_img">
+                  <img src="/static/main-left-side/Scope_hover_40x40.svg" class="menu_img active_img">
+                  <div class="menu_title">
+                    Scopes
+                  </div>
+                </div>
+              </a>              
+            </li>
+            <li class="" style="display:none;">
+              <div class="p-3 pl-4 pr-4">
+                <img src="/static/main-left-side/support_40x40.svg" class="menu_img default_img">
+                <img src="/static/main-left-side/support_hover_40x40.svg" class="menu_img active_img">
+                <div class="menu_title">
+                  Support
+                </div>
+              </div>
+            </li>
+            <li class="" style="display:none;">
+              <div class="p-3 pl-4 pr-4">
+                <img src="/static/main-left-side/api-30x30.svg" class="menu_img default_img">
+                <img src="/static/main-left-side/api-30x30-hover.svg" class="menu_img active_img">
+                <div class="menu_title">
+                  App Settings
+                </div>
+              </div>
+            </li>
+            <li class="">
+			<a href="/logout">
+              <div class="p-3 pl-4 pr-4">
+			    
+		        <img src="/static/main-left-side/logout_40x40.svg" class="menu_img default_img">
+                <img src="/static/main-left-side/logout_hover_40x40.svg" class="menu_img active_img">
+                <div class="menu_title">
+                  Logout
+                </div>
+		        
+              </div>
+			  </a>
+            </li>
+          </ul>
+		  </div>
+          <div class="div_social p-4 mx-auto d-none d-xl-block back_gray_color">
+            <div class="row m-0 p-0" style="max-width: 500px; display: inline-table;">
+              <div class="div_social_button">
+                <a href="https://www.facebook.com/birddog.tv/" target="_blank">
+                  <button class="btn_img"><img src="/static/social/FB_40x40.svg"
+                      style="height: 35px;" /></button>
+                </a>
+              </div>
+              <div class="div_social_button">
+                <a href="https://twitter.com/bird_dog_gear?lang=en" target="_blank">
+                  <button class="btn_img"><img src="/static/social/TW_40x40.svg"
+                      style="height: 35px;" /></button>
+                </a>
+              </div>
+              <div class="div_social_button">
+                <a href="https://www.instagram.com/birddog.tv/" target="_blank">
+                  <button class="btn_img"><img src="/static/social/IG_40x40.svg"
+                      style="height: 35px;" /></button>
+                </a>
+              </div>
+              <div class="div_social_button">
+                <a href="https://www.youtube.com/channel/UCBQxUCeyg9vqNZ5tm54gbVg" target="_blank">
+                  <button class="btn_img"><img src="/static/social/YT_40x40.svg"
+                      style="height: 35px;" /></button>
+                </a>
+              </div>
+              <div class="div_social_button">
+                <a href="https://www.linkedin.com/company/birddog-australia/" target="_blank">
+                  <button class="btn_img"><img src="/static/social/IN_40x40.svg"
+                      style="height: 35px;" /></button>
+                </a>
+              </div>
+            </div>
+            <div class="mt-2">
+			<a href="https://birddog.tv/" target="_blank">
+              <button class="website btn_img font_gray_color">BirdDog.tv</button>
+			</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-xl-9 m-0 p-0" id="content_background">
+      
+        <div class="p-2" id="page_box">
+		
+		
+		
+<body onload="populateSelectDecodeSrc();">
+<div class="row m-0 p-0 row_in_page cm_h_lg_auto">
+    <div class="col-12 m-0 p-2">
+        <div class="div_content_box back_gray_color">
+            <div class="div_box_title border_bottom pl-3 pr-1">
+                <div class="div_subtitle" style="height: 100%; display: inline-block;">
+                    <span class="font_gray_color">Device Settings</span>
+                </div>
+                
+                    
+                
+            </div>
+
+            <div class="div_box_content">
+                <div class="row m-0 p-0 cm_h_lg_100">
+                    <div class="col-12 m-0 p-0 v_center_parent">
+                        <div class="p-3" id="div_advanced_settings_content"> 
+						  <form enctype="multipart/form-data" id="mod_sel" autocomplete="off" method="post">
+                            <div class="row m-0 p-0 div_tab_contents">
+                                <div class="col-xl-6 m-0 p-0 pr-xl-2">
+                                    <div>
+									
+										<div class="row m-0 p-1"  style="display:none;"  >
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+                                                Video Processing Mode
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+                                                <div class="row m-0 p-0">
+                                                    <div class="col-6 m-0 p-0 pr-1">
+                                                       <input onchange='this.form.submit();'    class="oneradio" type="radio" form="mod_sel" value="LowLatency" id="lowlatency" name="videooutput" />
+														<label class="widthb3" for="lowlatency"> LOW-LATENCY </label>
+                                                    </div>
+                                                    <div class="col-6 m-0 p-0 pl-1">
+                                                        <input onchange='this.form.submit();'  class="oneradio" type="radio" form="mod_sel" value="NormalMode" id="normalmode" name="videooutput" />
+														<label class="widthb3" for="normalmode"> NORMAL </label> 
+                                                    </div>
+                                                </div>     
+                                            </div>
+                                        </div>
+										
+										<div class="row m-0 p-1"  style="display:none;" >
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+                                                Active Video Output Interface
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+                                                <div class="row m-0 p-0">
+                                                    <div class="col-6 m-0 p-0 pr-1">
+                                                       <input onchange='this.form.submit();'   class="oneradio" type="radio" form="mod_sel" value="sdi" id="sdi" name="videooutput" />
+														<label class="widthb3" for="sdi"> SDI </label>
+                                                    </div>
+                                                    <div class="col-6 m-0 p-0 pl-1">
+                                                        <input onchange='this.form.submit();'  class="oneradio" type="radio" form="mod_sel" value="hdmi" id="hdmi" name="videooutput" />
+														<label class="widthb3" for="hdmi"> HDMI </label>
+                                                    </div>
+                                                </div>     
+                                            </div>
+                                        </div>
+										
+										
+                                       
+                                        <div class="row m-0 p-1"  style="display:none;" >
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+                                                Audio Output Select
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+                                                <div class="row m-0 p-0">
+                                                    <div class="col-6 m-0 p-0 pr-1"  style="display:none;" >
+                                                       <input onchange='this.form.submit();'   class="oneradio" type="radio" form="mod_sel" value="DecodeLoop" id="ajoutseld" name="AnalogAudiooutputselect" />
+														<label class="widthb3" for="ajoutseld"> LOOP </label>
+                                                    </div>
+													 
+													<div class="col-6 m-0 p-0 pr-1">
+                                                       <input onchange='this.form.submit();'   class="oneradio" type="radio" form="mod_sel" value="DecodeMain" id="ajoutseldd" name="AnalogAudiooutputselect" />
+														<label class="widthb3" for="ajoutseldd"> DECODE </label>
+                                                    </div>
+													
+                                                    <div class="col-6 m-0 p-0 pl-1">
+                                                        <input onchange='this.form.submit();'  class="oneradio" type="radio" form="mod_sel" value="DecodeComms" id="ajoutselc" name="AnalogAudiooutputselect" />
+														<label class="widthb3" for="ajoutselc"> COMMS </label>
+                                                    </div>
+                                                </div>     
+                                            </div>
+                                        </div>
+										<div class="row m-0 p-1"  style="display:none;" >
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+                                                Operation Mode
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+                                                <div class="row m-0 p-0">
+                                                    <div  class="col-6 m-0 p-0 pr-1" >
+                                                       <input onClick="popFunction(event,this.form)"   class="oneradio" type="radio" form="mod_sel" value="encode" id="encode" name="mode" />
+														<label class="widthb3" for="encode"> ENCODE </label>
+                                                    </div>
+                                                    <div  class="col-6 m-0 p-0 pl-1" >
+                                                        <input onClick="popFunction(event,this.form)"  class="oneradio" type="radio" form="mod_sel" value="decode" id="decode" name="mode" />
+														<label class="widthb3" for="decode"> DECODE </label>
+                                                    </div>
+													
+                                                </div>     
+                                            </div>
+                                        </div>
+										
+										
+										<div class="row m-0 p-0">
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+                                                OSD
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+                                                <div class="row m-0 p-0">
+                                                    <div class="col-6 m-0 p-0 pr-1">
+                                                  <input onchange='this.form.submit();'  class="oneradio" type="radio" form="mod_sel" value="false" id="osdoff" name="Osd" />
+												   <label class="widthb3" for="osdoff"> DISABLE </label>		
+                                                    </div>
+												 <div class="col-6 m-0 p-0 pl-1">
+													<input onchange='this.form.submit();'  checked  class="oneradio" type="radio" form="mod_sel" value="true" id="osdon" name="Osd" />
+													<label class="widthb3" for="osdon"> ENABLE </label>
+                                                </div>
+                                            </div>     
+                                         </div>
+                                        </div>
+										<div class="row m-0 p-0">
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+                                                HDMI Timeout
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+                                                <div class="row m-0 pr-1">
+                                                   <div class="col-6 m-0 p-0">
+												<span class="custom-dropdown">
+                                                   	<select id="hdmitimeout" name="HdmiTimeout" form="mod_sel" onchange='this.form.submit()'>
+					                                <option   value="1">1 second</option>
+					                                <option  value="2">2 seconds</option>
+					                                <option  value="5">5 seconds</option>
+					                                <option  value="20">20 seconds</option>
+					                                <option  value="30">30 seconds</option>
+					                                <option  value="60">1 minute</option>
+					                                <option  value="120">2 minutes</option>
+					                                <option  value="180">3 minutes</option>
+					                                <option  value="300">5 minutes</option>
+					                                <option  value="600">10 minutes</option>
+					                                <option  value="900">15 minutes</option>
+					                                <option  value="1200">20 minutes</option>
+					                                <option  value="1500">25 minutes</option>
+					                                <option  value="1800">30 minutes</option>
+					                                <option  value="2700">45 minutes</option>
+													<option  selected   value="-1">Never</option>
+													</select>
+													</span>
+                                                    </div>
+                                            </div>     
+                                         </div>
+                                        </div>
+										
+										<div class="row m-0 p-1">
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+                                                Device Restart
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+                                                <div class="row m-0 p-0">
+                                                    <div class="col-6 m-0 p-0 pr-1">
+                                                       
+													   
+                                                       <button class="restart" id="restart-video-btn" name="request-video-restart" value="true" onmousedown="mouseDown(this)" onmouseup="mouseUp(this)" form="mod_sel" type="submit">RESTART</button>
+				                                       
+                                                    </div>
+                                                    <div class="col-6 m-0 p-0 pl-1">
+                                                    </div>
+                                                </div>     
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-xl-6 m-0 p-0 pl-xl-4"  style="display:none;" >
+                                    <div>
+                                        <div class="row m-0 p-1">
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+                                                Audio In Gain
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+                                                <div class="row m-0 p-0">
+                                                    <div class="col-9 m-0 p-0 pr-1">
+                                                        <input type="range" class="slider v_center_child" style="width: 100%;" onchange='this.form.submit();' min="0" max="100" value=50 id="ajingain" name="AnalogAudioInGain"/>
+                                                    </div>
+                                                    <div class="col-3 m-0 p-0 pl-1">
+                                                        <div class="ele_common" id="ajingainText" style="min-width: 0 !important; text-align: center;">
+                                                            120
+                                                        </div>
+                                                    </div>
+                                                </div>     
+                                            </div>
+                                        </div>
+                                        <div class="row m-0 p-1">
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+                                                Audio Out Gain
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+                                                <div class="row m-0 p-0">
+                                                    <div class="col-9 m-0 p-0 pr-1">
+                                                        <input type="range" class="slider v_center_child" style="width: 100%;" onchange='this.form.submit();' min="0" max="100" value=50 id="ajoutgain" name="AnalogAudioOutGain"/>
+                                                    </div>
+                                                    <div class="col-3 m-0 p-0 pl-1">
+                                                        <div class="ele_common" id="ajoutgainText" style="min-width: 0 !important; text-align: center;">
+                                                            120
+                                                        </div>
+                                                    </div>
+                                                </div>     
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+						  </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row m-0 p-0 row_in_page cm_h_lg_auto">
+    <div class="col-12 m-0 p-2">
+        <div class="div_content_box back_gray_color">
+		  
+            <div class="div_box_title border_bottom pl-3 pr-1">
+                <div class="div_subtitle" style="height: 100%; display: inline-block;">
+				
+				    <span class="font_gray_color">Decode Settings</span>
+				
+                </div>
+				
+				 
+                 
+				
+			</div>
+        
+            <div class="div_box_content">
+                <div class="row m-0 p-0 cm_h_lg_100">
+                    <div class="col-12 m-0 p-0 v_center_parent">
+                        <div class="pl-3 pr-3 pb-3 pt-0" id="div_advanced_settings_content"> 
+						<form class="tabcontent" enctype="multipart/form-data"  style="display:none;"  id="enc1_form" autocomplete="off" method="post">
+						
+                            <div class="row m-0 pt-2 div_tab_contents" style="display_: none;">
+                                <div class="col-xl-6 m-0 p-0 pr-xl-2">
+                                    <div>
+									    <div class="row m-0 p-1" >
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+                                                Bitrate Management
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+											<span class="custom-dropdown">
+                                                   <select id="ndivideoqm" name="BandwidthMode" form="enc1_form" >
+					                               <option value="Manual" >MANUAL</option>
+					                               <option value="NDIManaged" >NDI MANAGED</option>
+				                                   </select>
+										    </span>
+                                            </div>
+                                        </div>
+										<div class="row m-0 p-1">
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+                                                NDI Video Bandwidth
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+                                                <div class="row m-0 p-0">
+                                                    <div class="col-9 m-0 p-0 pr-1">
+                                                        <input type="range" class="slider v_center_child" style="width: 100%;" input onchange='this.form.submit();'  min="80" max="180"  value=%!s(&lt;nil&gt;) id="encode_bw" name="BandwidthSelect"/>
+                                                    </div>
+                                                    <div class="col-3 m-0 p-0 pl-1">
+                                                        <div id="encode_bwText" class="ele_common" style="min-width: 0 !important; text-align: center;">
+                                                            120
+                                                        </div>
+                                                    </div>
+                                                </div>     
+                                            </div>
+                                        </div>
+										<div class="row m-0 p-1"  >
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+                                                Chroma Subsampling
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+                                                <div class="row m-0 p-0">
+                                                    <div class="col-6 m-0 p-0 pr-1">
+                                                       <input onchange='this.form.submit();'  disabled   class="oneradio" type="radio" form="enc1_form" value="420" id="420" name="VideoSampleRate" />
+														<label class="widthb3" for="420"> 4:2:0 </label>
+                                                    </div>
+                                                    <div class="col-6 m-0 p-0 pl-1">
+													  <input onchange='this.form.submit();'  disabled   checked   class="oneradio" type="radio" form="enc1_form" value="422" id="422" name="VideoSampleRate" />
+													  <label class="widthb3" for="422"> 4:2:2 </label>
+                                                    </div>
+                                                </div>     
+                                            </div>
+                                        </div>
+                                          <div class="row m-0 p-1">
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+                                                NDI Group Enable
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+                                                <div class="row m-0 p-0">
+                                                    <div class="col-6 m-0 p-0 pr-1">
+                                                       <input onchange='this.form.submit();'  class="oneradio" type="radio" form="enc1_form" value="NDIGroupDis" id="ndisendgnend" name="NDIGroup" />
+													   <label class="widthb3" for="ndisendgnend"> DISABLE </label> 
+                                                    </div>
+                                                    <div class="col-6 m-0 p-0 pl-1">
+													   <input onchange='this.form.submit();'  class="oneradio" type="radio" form="enc1_form" value="NDIGroupEn" id="ndisendgnene" name="NDIGroup" />
+													   <label class="widthb3" for="ndisendgnene"> ENABLE </label>
+                                                    </div>
+                                                </div>     
+                                            </div>
+                                        </div>
+										<div class="row m-0 p-1">
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+                                                NDI Group Name
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+                                                
+                                                  <input type="text" onchange='this.form.submit();' name="NDIGroupName" id="ndisendgn" value="%!s(&lt;nil&gt;)" />
+                                                
+                                            </div>
+                                        </div>
+                                        <div class="row m-0 p-1">
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+                                                NDI Stream Name
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+                                                <input  type="text" onchange='this.form.submit();' name="StreamName" id="ndistreamname" value="%!s(&lt;nil&gt;)"   />
+                                            </div>
+                                        </div>
+                                        <div class="row m-0 p-1">
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+                                                Video Format
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+											
+													<span class="custom-dropdown">
+                                                   	<select id="videoin" name="VideoFormat" form="enc1_form" onchange='this.form.submit()'>
+					                               <option value=%!s(&lt;nil&gt;)>%!s(&lt;nil&gt;)</option>
+					                               <option value="2160p23.97">2160p23.97</option>							
+					                               <option value="2160p24">2160p24</option>	
+					                               <option value="2160p25">2160p25</option>						
+					                               <option value="2160p29.97">2160p29.97</option>					
+					                               <option value="2160p30">2160p30</option>
+					                               <option value="1080p60">1080p60</option>
+					                               <option value="1080p59.94">1080p59.94</option>
+					                               <option value="1080p50">1080p50</option>
+					                               <option value="1080i60" >1080i60</option>
+					                               <option value="1080i59.94" >1080i59.94</option>
+					                               <option value="1080i50" >1080i50</option>
+					                               <option value="1080p30" >1080p30</option>
+					                               <option value="1080p29.97" >1080p29.97</option>
+					                               <option value="1080p25" >1080p25</option>
+					                               <option value="1080p24" >1080p24</option>
+					                               <option value="1080p23.97" >1080p23.97</option>
+					                               <option value="720p60" >720p60</option>
+					                               <option value="720p59.94" >720p59.94</option>
+					                               <option value="720p50" >720p50</option>
+												   </select>
+												   </span>
+										    
+                                            </div>
+                                        </div>
+                                        <div class="row m-0 p-1" >
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+                                                NDI Audio
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+                                                <div class="row m-0 p-0">
+												    <div  style="display:none;" >
+                                                        <input onchange='this.form.submit();'  class="oneradio" type="radio" form="enc1_form" value="NDIAudioMain" id="ndiaudiomain" name="NDIAudio" />
+														<label class="widthb3" for="ndiaudiomain"> Main </label>
+                                                    </div>
+                                                    <div  class="col-6 m-0 p-0 pr-1"  >
+                                                        <input onchange='this.form.submit();'  class="oneradio" type="radio" form="enc1_form" value="NDIAudioAnalog" id="ndiaudioanalog" name="NDIAudio" />
+														<label class="widthb3" for="ndiaudioanalog"> Analogue </label>
+                                                    </div>
+                                                    <div   class="col-6 m-0 p-0 pl-1" >
+                                                        <input onchange='this.form.submit();'  class="oneradio" type="radio" form="enc1_form" value="NDIAudioMute" id="ndiaudiomute" name="NDIAudio" />
+														<label class="widthb3" for="ndiaudiomute"> Mute </label> 
+                                                    </div>
+                                                </div>     
+                                            </div>
+                                        </div>
+											 <div class="row m-0 p-1">
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+                                                Stream To Network
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+                                                <div class="row m-0 p-0">
+                                                    <div class="col-6 m-0 p-0 pr-1">
+														<input onchange='this.form.submit();'  class="oneradio" type="radio" form="enc1_form" value="Off" id="stmoff" name="StreamToNetwork" />
+														<label class="widthb3" for="stmoff"> OFF </label> 
+                                                        
+                                                    </div>
+                                                    <div class="col-6 m-0 p-0 pl-1">
+                                                        <input onchange='this.form.submit();'  class="oneradio" type="radio" form="enc1_form" value="On" id="stmon" name="StreamToNetwork" />
+														<label class="widthb3" for="stmon"> ON </label>
+                                                    </div>
+                                                </div>     
+                                            </div>
+                                        </div>
+										<div class="row m-0 p-1" >
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+                                                YUV Color Space
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+                                                <div class="row m-0 p-0">
+                                                    <div  class="col-6 m-0 p-0 pr-1" >
+														
+														<input onchange='this.form.submit();'    class="oneradio" type="radio" form="enc1_form" value="YVU" id="yvu" name="VideoCSC" />
+														
+														<label class="widthb3" for="yvu"> YVU </label> 
+                                                        
+                                                    </div>
+                                                    <div  class="col-6 m-0 p-0 pl-1" >
+                                                        
+														<input onchange='this.form.submit();'  class="oneradio" type="radio" form="enc1_form" value="YUV" id="yuv" name="VideoCSC" />
+														
+														<label class="widthb3" for="yuv"> YUV </label>
+                                                    </div>
+													
+                                                </div>     
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-xl-6 m-0 p-0 pl-xl-4">
+                                    <div>
+										 <div style="display:none;" class="row m-0 p-1">
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+                                                GENLOCK
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+                                                <div class="row m-0 p-0">
+                                                    <div class="col-6 m-0 p-0 pr-1">
+                                                       <input onchange='this.form.submit();'  class="oneradio" type="radio" form="enc1_form" value="Off" id="genlockdis" name="GenLock" />
+													   <label class="widthb3" for="genlockdis"> DISABLE </label> 
+                                                    </div>
+                                                    <div class="col-6 m-0 p-0 pl-1">
+													   <input onchange='this.form.submit();'  class="oneradio" type="radio" form="enc1_form" value="On" id="genlocken" name="GenLock" />
+													   <label class="widthb3" for="genlocken"> ENABLE </label>
+                                                    </div>
+                                                </div>     
+                                            </div>
+                                        </div>
+										 <div style="display:none;" class="row m-0 p-1">
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+                                                GenLock Source Name
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+                                                
+                                                   <input style="text-transform:uppercase" type="text" name="genlock_source_name" id="genlock_source_name" value="" />
+                                                
+                                            </div>
+                                        </div>
+										<div class="row m-0 p-1" style="display:none;">
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+                                                GenLock Source IP
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+                                                
+                                                   <input style="text-transform:uppercase" type="text" name="genlock_source_ip" id="genlock_source_ip" value=""/>
+                                                
+                                            </div>
+                                        </div>
+										<div class="row m-0 p-1" >
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+                                                Bit Depth
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+                                                <div class="row m-0 p-0">
+                                                    <div class="col-6 m-0 p-0 pr-1">
+														<input onchange='this.form.submit();'  class="oneradio" type="radio" form="enc1_form" value="8bit" id="8bit" name="ColorBitDepth" />
+														<label class="widthb3" for="8bit"> 8bit </label> 
+                                                        
+                                                    </div>
+                                                    <div class="col-6 m-0 p-0 pl-1">
+                                                        <input onchange='this.form.submit();'  class="oneradio" type="radio" form="enc1_form" value="10bit" id="10bit" name="ColorBitDepth" />
+														<label class="widthb3" for="10bit"> 10bit </label>
+                                                    </div>
+                                                </div>     
+                                            </div>
+                                        </div>
+										<div class="row m-0 p-1">
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+                                                Encode Screensaver
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+												  <span class="custom-dropdown">
+                                                   <select id="ssmode" name="ScreenSaverMode" form="enc1_form" onchange='this.form.submit()'>
+					                               <option id="enc_sel" style="display:none" value=%!s(&lt;nil&gt;)></option>
+					                               <option value="CaptureSS">Capture</option>
+					                               <option value="BlackSS">Black</option>
+					                               <option value="BirdDogSS">BirdDog</option>
+				                                   </select>
+												   </span>                                                
+                                            </div>
+                                        </div>
+										 <div class="row m-0 p-1">
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+                                                Capture Screen Frame
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+                                                <div class="row m-0 p-0">
+                                                    <div class="col-6 m-0 p-0 pr-1"></div>
+                                                    <div class="col-6 m-0 p-0 pl-1">
+                                                        <button class="restart" name="enc_cap_button" onmousedown="mouseDown(this)" onmouseup="mouseUp(this)" value="enc_cap"  type="submit" form="enc1_form">CAPTURE</button>  
+                                                    </div>
+                                                </div>     
+                                            </div>
+                                        </div>
+									    <div class="row m-0 p-1" >
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+                                                Onboard Tally
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+                                                
+												   <span class="custom-dropdown">
+                                                   <select id="tallymode" name="TallyMode" form="enc1_form" onchange='this.form.submit()'>
+					                               
+					                              <option value="TallyOn" >ON</option>
+					                               <option value="TallyOff" >OFF</option>
+					                               <option value="VideoMode"  >Video Mode</option>
+				                                   </select>
+												   </span>
+                                                    
+                                                        
+                                                    
+                                                
+                                            </div>
+                                        </div>
+										
+                                        <div style="display:none;" class="row m-0 p-1">
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+                                                Failover Source Name
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+                                                   <input style="text-transform:uppercase" type="text" name="fo_source_name" id="fo_source_name" value="" />
+                                            </div>
+                                        </div>
+										<div class="row m-0 p-1" style="display:none;">
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+                                                Failover Source IP
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+                                                   <input style="text-transform:uppercase" type="text" name="fo_source_ip" id="fo_source_ip" value=""/>
+                                            </div>
+                                        </div>
+										<div class="row m-0 p-1">
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+                                                Genlock Source
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+												 <span class="custom-dropdown">
+                                                   <select id="gensel" onchange="genshow(this)" onclick="populateSelectDecodeSrc()">
+												   <option value=""></option>
+												   </select>
+												   </body>
+					                            
+												</span>
+                                            </div>
+                                        </div>
+                                        <div class="row m-0 p-1">
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+                                                Failover Source
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+												 <span class="custom-dropdown">
+                                                   <select id="fosel" onchange="foshow(this)" onclick="populateSelectDecodeSrc()">
+												   <option value=""></option>
+												   </select>
+												   </body>
+												</span>
+                                            </div>
+                                        </div>
+                                        <div class="row m-0 p-1">
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+                                                Update Source List
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+                                                <div class="row m-0 p-0">
+                                                    <div class="col-6 m-0 p-0 pr-1">
+                                                        <button class="restart" onmousedown="mouseDown(this)" onmouseup="mouseUp(this)" id="add_new_fo_sources" name="add_new_fo_sources" value="rst_fo_sources" type="submit">RESET</button>
+                                                    </div>
+                                                    <div class="col-6 m-0 p-0 pl-1">
+                                                       <button class="restart" onmousedown="mouseDown(this)" onmouseup="mouseUp(this)" id="add_new_fo_sources" name="add_new_fo_sources" value="new_fo_sources" type="submit">REFRESH</button>
+                                                    </div>
+                                                </div>     
+                                            </div>
+                                        </div>
+                                        <div class="row m-0 p-1">
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+											Apply Source</div>
+                                            <div class="col-xl-7 m-0 p-0">
+                                                <div class="row m-0 p-0">
+                                                    <div class="col-6 m-0 p-0"></div>
+                                                    <div class="col-6 m-0 p-0">
+                                                        <button class="restart" onmousedown="mouseDown(this)" onmouseup="mouseUp(this)" name="change_fo_source_button" value="change_fo_source" type="submit" form="enc1_form">APPLY</button>
+                                                    </div>
+                                                </div>                                                
+                                            </div>
+                                        </div>
+										<div style="display:none;" class="row m-0 p-1">
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+											Apply GenLock Source</div>
+                                            <div class="col-xl-7 m-0 p-0">
+                                                <div class="row m-0 p-0">
+                                                    <div class="col-6 m-0 p-0"></div>
+                                                    <div class="col-6 m-0 p-0">
+                                                        <button class="restart" onmousedown="mouseDown(this)" onmouseup="mouseUp(this)" name="change_genlock_source_button" value="change_genlock_source" type="submit" form="enc1_form">APPLY</button>
+                                                    </div>
+                                                </div>                                                
+                                            </div>
+                                        </div>
+                                    </div>
+                                  </div>
+                               </div>
+						</form>
+							<form class="tabcontent" enctype="multipart/form-data"  style="display:none;"  id="enc2_form" autocomplete="off" method="post">
+							<div class="border_bottom pb-2">
+				            <div class="col-xl-12 m-0 p-0">
+                            <div class="row m-0 p-0">
+                             <div class="col-11 m-0 p-0">
+                               </div>
+								 <div class="col-1 m-0 p-0" style="min-width:95px;">
+								 
+                                 <button class="restart" type="submit" name="enc1_restart_button" value="enc1_restart" onmousedown="mouseDown(this)" onmouseup="mouseUp(this)" form="enc2_form" type="submit">RESTART</button>
+                                 </div>
+                              </div>
+                            </div>
+			                </div>
+                            <div class="row m-0 pt-2 div_tab_contents" style="display_: none;">
+                                <div class="col-xl-6 m-0 p-0 pr-xl-2">
+                                    <div>
+									    <div class="row m-0 p-1">
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+                                                Bitrate Management
+                                            </div>
+											<div class="col-xl-7 m-0 p-0">
+											<span class="custom-dropdown">
+                                                   <select id="encode1_ndivideoqm" name="encode1_BandwidthMode" form="enc2_form" >
+					                               <option value="Manual" >MANUAL</option>
+					                               <option value="NDIManaged" >NDI MANAGED</option>
+				                                   </select>
+										    </span>
+                                            </div>
+                                        </div>
+										<div class="row m-0 p-1">
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+                                                NDI Video Bandwidth
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+                                                <div class="row m-0 p-0">
+                                                    <div class="col-9 m-0 p-0 pr-1">
+                                                        <input type="range" class="slider v_center_child" style="width: 100%;" input onchange='this.form.submit();'  min="80" max="180"  value=%!s(&lt;nil&gt;) id="encode1_bw" name="encode1_BandwidthSelect"/>
+                                                    </div>
+                                                    <div class="col-3 m-0 p-0 pl-1">
+                                                        <div id="encode1_bwText" class="ele_common" style="min-width: 0 !important; text-align: center;">
+                                                            120
+                                                        </div>
+                                                    </div>
+                                                </div>     
+                                            </div>
+                                        </div>
+										<div class="row m-0 p-1"  >
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+                                                Chroma Subsampling
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+                                                <div class="row m-0 p-0">
+                                                    <div class="col-6 m-0 p-0 pr-1">
+                                                       <input onchange='this.form.submit();'  disabled   class="oneradio" type="radio" form="enc2_form" value="420" id="encode1_420" name="encode1_VideoSampleRate" />
+														<label class="widthb3" for="encode1_420"> 4:2:0 </label>
+                                                    </div>
+                                                    <div class="col-6 m-0 p-0 pl-1">
+													  <input onchange='this.form.submit();'  disabled   checked   class="oneradio" type="radio" form="enc2_form" value="422" id="encode1_422" name="encode1_VideoSampleRate" />
+													  <label class="widthb3" for="encode1_422"> 4:2:2 </label>
+                                                    </div>
+                                                </div>     
+                                            </div>
+                                        </div>
+                                          <div class="row m-0 p-1">
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+                                                NDI Group Enable
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+                                                <div class="row m-0 p-0">
+                                                    <div class="col-6 m-0 p-0 pr-1">
+                                                       <input onchange='this.form.submit();'  class="oneradio" type="radio" form="enc2_form" value="NDIGroupDis" id="encode1_ndisendgnend" name="encode1_NDIGroup" />
+													   <label class="widthb3" for="encode1_ndisendgnend"> DISABLE </label> 
+                                                    </div>
+                                                    <div class="col-6 m-0 p-0 pl-1">
+													   <input onchange='this.form.submit();'  class="oneradio" type="radio" form="enc2_form" value="NDIGroupEn" id="encode1_ndisendgnene" name="encode1_NDIGroup" />
+													   <label class="widthb3" for="encode1_ndisendgnene"> ENABLE </label>
+                                                    </div>
+                                                </div>     
+                                            </div>
+                                        </div>
+										<div class="row m-0 p-1">
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+                                                NDI Group Name
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+                                                
+                                                  <input type="text" onchange='this.form.submit();' name="encode1_NDIGroupName" id="encode1_ndisendgn" value="%!s(&lt;nil&gt;)" />
+                                                
+                                            </div>
+                                        </div>
+                                        <div class="row m-0 p-1">
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+                                                NDI Stream Name
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+                                                <input type="text" onchange='this.form.submit();' name="encode1_StreamName" id="encode1_ndistreamname" value="%!s(&lt;nil&gt;)"  />
+                                            </div>
+                                        </div>
+                                        <div class="row m-0 p-1">
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+                                                Video Format
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+											
+													<span class="custom-dropdown">
+                                                   	<select id="encode1_videoin" name="encode1_VideoFormat" form="enc2_form" onchange='this.form.submit()'>
+					                               <option value=%!s(&lt;nil&gt;)>%!s(&lt;nil&gt;)</option>
+					                               <option value="2160p23.97">2160p23.97</option>							
+					                               <option value="2160p24">2160p24</option>	
+					                               <option value="2160p25">2160p25</option>						
+					                               <option value="2160p29.97">2160p29.97</option>					
+					                               <option value="2160p30">2160p30</option>
+					                               <option value="1080p60">1080p60</option>
+					                               <option value="1080p59.94">1080p59.94</option>
+					                               <option value="1080p50">1080p50</option>
+					                               <option value="1080i60" >1080i60</option>
+					                               <option value="1080i59.94" >1080i59.94</option>
+					                               <option value="1080i50" >1080i50</option>
+					                               <option value="1080p30" >1080p30</option>
+					                               <option value="1080p29.97" >1080p29.97</option>
+					                               <option value="1080p25" >1080p25</option>
+					                               <option value="1080p24" >1080p24</option>
+					                               <option value="1080p23.97" >1080p23.97</option>
+					                               <option value="720p60" >720p60</option>
+					                               <option value="720p59.94" >720p59.94</option>
+					                               <option value="720p50" >720p50</option>
+												   </select>
+												   </span>
+												   
+                                            </div>
+                                        </div>
+                                        <div class="row m-0 p-1" >
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+                                                NDI Audio
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+                                                <div class="row m-0 p-0">
+												
+                                                    <div class="col-6 m-0 p-0 pr-1" >
+                                                        <input onchange='this.form.submit();'  class="oneradio" type="radio" form="enc2_form" value="NDIAudioAnalog" id="encode1_ndiaudioanalog" name="encode1_NDIAudio" />
+														<label class="widthb3" for="encode1_ndiaudioanalog"> Analogue </label>
+                                                    </div>
+                                                    <div class="col-6 m-0 p-0 pl-1">
+                                                        <input onchange='this.form.submit();'  class="oneradio" type="radio" form="enc2_form" value="NDIAudioMute" id="encode1_ndiaudiomute" name="encode1_NDIAudio" />
+														<label class="widthb3" for="encode1_ndiaudiomute"> Mute </label> 
+                                                    </div>
+                                                </div>     
+                                            </div>
+                                        </div>
+											 <div class="row m-0 p-1">
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+                                                Stream To Network
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+                                                <div class="row m-0 p-0">
+                                                    <div class="col-6 m-0 p-0 pr-1">
+														<input onchange='this.form.submit();'  class="oneradio" type="radio" form="enc2_form" value="Off" id="encode1_stmoff" name="encode1_StreamToNetwork" />
+														<label class="widthb3" for="encode1_stmoff"> OFF </label> 
+                                                        
+                                                    </div>
+                                                    <div class="col-6 m-0 p-0 pl-1">
+                                                        <input onchange='this.form.submit();'  class="oneradio" type="radio" form="enc2_form" value="On" id="encode1_stmon" name="encode1_StreamToNetwork" />
+														<label class="widthb3" for="encode1_stmon"> ON </label>
+                                                    </div>
+                                                </div>     
+                                            </div>
+                                        </div>
+										<div class="row m-0 p-1" >
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+                                                YUV Color Space
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+                                                <div class="row m-0 p-0">
+                                                    <div class="col-6 m-0 p-0 pr-1">
+														<input onchange='this.form.submit();'  class="oneradio" type="radio" form="enc2_form" value="YVU" id="encode1_yvu" name="encode1_VideoCSC" />
+														<label class="widthb3" for="encode1_yvu"> YVU </label> 
+                                                        
+                                                    </div>
+                                                    <div class="col-6 m-0 p-0 pl-1">
+                                                        <input onchange='this.form.submit();'  class="oneradio" type="radio" form="enc2_form" value="YUV" id="encode1_yuv" name="encode1_VideoCSC" />
+														<label class="widthb3" for="encode1_yuv"> YUV </label>
+                                                    </div>
+                                                </div>     
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-xl-6 m-0 p-0 pl-xl-4">
+                                    <div>
+										 <div style="display:none;" class="row m-0 p-1">
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+                                                GENLOCK
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+                                                <div class="row m-0 p-0">
+                                                    <div class="col-6 m-0 p-0 pr-1">
+                                                       <input onchange='this.form.submit();'  class="oneradio" type="radio" form="enc2_form" value="Off" id="encode1_genlockdis" name="encode1_GenLock" />
+													   <label class="widthb3" for="encode1_genlockdis"> DISABLE </label> 
+                                                    </div>
+                                                    <div class="col-6 m-0 p-0 pl-1">
+													   <input onchange='this.form.submit();'  class="oneradio" type="radio" form="enc2_form" value="On" id="encode1_genlocken" name="encode1_GenLock" />
+													   <label class="widthb3" for="encode1_genlocken"> ENABLE </label>
+                                                    </div>
+                                                </div>     
+                                            </div>
+                                        </div>
+										 <div style="display:none;" class="row m-0 p-1">
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+                                                GenLock Source Name
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+                                                
+                                                   <input style="text-transform:uppercase" type="text" name="encode1_genlock_source_name" id="encode1_genlock_source_name" value="" />
+                                                
+                                            </div>
+                                        </div>
+										<div class="row m-0 p-1" style="display:none;">
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+                                                GenLock Source IP
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+                                                
+                                                   <input style="text-transform:uppercase" type="text" name="encode1_genlock_source_ip" id="encode1_genlock_source_ip" value=""/>
+                                                
+                                            </div>
+                                        </div>
+										<div class="row m-0 p-1" >
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+                                                Bit Depth
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+                                                <div class="row m-0 p-0">
+                                                    <div class="col-6 m-0 p-0 pr-1">
+														<input onchange='this.form.submit();'  class="oneradio" type="radio" form="enc2_form" value="8bit" id="encode1_8bit" name="encode1_ColorBitDepth" />
+														<label class="widthb3" for="encode1_8bit"> 8bit </label> 
+                                                        
+                                                    </div>
+                                                    <div class="col-6 m-0 p-0 pl-1">
+                                                        <input onchange='this.form.submit();'  class="oneradio" type="radio" form="enc2_form" value="10bit" id="encode1_10bit" name="encode1_ColorBitDepth" />
+														<label class="widthb3" for="encode1_10bit"> 10bit </label>
+                                                    </div>
+                                                </div>     
+                                            </div>
+                                        </div>
+										<div class="row m-0 p-1">
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+                                                Encode Screensaver
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+												  <span class="custom-dropdown">
+                                                   <select id="encode1_ssmode" name="encode1_ScreenSaverMode" form="enc2_form" onchange='this.form.submit()'>
+					                               <option id="enc1_sel" style="display:none" value=%!s(&lt;nil&gt;)></option>
+					                               <option value="CaptureSS">Capture</option>
+					                               <option value="BlackSS">Black</option>
+					                               <option value="BirdDogSS">BirdDog</option>
+				                                   </select>
+												   </span>                                                
+                                            </div>
+                                        </div>
+										 <div class="row m-0 p-1">
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+                                                Capture Screen Frame
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+                                                <div class="row m-0 p-0">
+                                                    <div class="col-6 m-0 p-0 pr-1"></div>
+                                                    <div class="col-6 m-0 p-0 pl-1">
+                                                        <button class="restart" name="enc1_cap_button" onmousedown="mouseDown(this)" onmouseup="mouseUp(this)" value="enc1_cap"  type="submit" form="enc2_form">CAPTURE</button>  
+                                                    </div>
+                                                </div>     
+                                            </div>
+                                        </div>
+									    <div class="row m-0 p-1" >
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+                                                Onboard Tally
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+                                                
+												   <span class="custom-dropdown">
+                                                   <select id="encode1_tallymode" name="encode1_TallyMode" form="enc2_form" onchange='this.form.submit()'>
+					                               
+					                               <option value="TallyOn" >ON</option>
+					                               <option value="TallyOff" >OFF</option>
+												   <option value="VideoMode" >Video Mode</option>
+				                                   </select>
+												   </span>
+                                                    
+                                                        
+                                                    
+                                                
+                                            </div>
+                                        </div>
+										
+                                        <div style="display:none;" class="row m-0 p-1">
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+                                                Failover Source Name
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+                                                   <input style="text-transform:uppercase" type="text" name="encode1_fo_source_name" id="encode1_fo_source_name" value="" />
+                                            </div>
+                                        </div>
+										<div class="row m-0 p-1" style="display:none;">
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+                                                Failover Source IP
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+                                                   <input style="text-transform:uppercase" type="text" name="encode1_fo_source_ip" id="encode1_fo_source_ip" value=""/>
+                                            </div>
+                                        </div>
+										<div class="row m-0 p-1">
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+                                                Genlock Source
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+												 <span class="custom-dropdown">
+                                                   <select id="encode1_gensel" onchange="enc1genshow(this)" onclick="populateSelectDecodeSrc()">
+												   <option value=""></option>
+												   </select>
+												   </body>
+					                            
+												</span>
+                                            </div>
+                                        </div>
+                                        <div class="row m-0 p-1">
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+                                                Failover Source
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+												 <span class="custom-dropdown">
+                                                   <select id="encode1_fosel" onchange="enc1foshow(this)" onclick="populateSelectDecodeSrc()">
+												   <option value=""></option>
+												   </select>
+												   </body>
+												</span>
+                                            </div>
+                                        </div>
+                                        <div class="row m-0 p-1">
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+                                                Update Source List
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+                                                <div class="row m-0 p-0">
+                                                    <div class="col-6 m-0 p-0 pr-1">
+                                                        <button class="restart" onmousedown="mouseDown(this)" onmouseup="mouseUp(this)" id="encode1_add_new_fo_sources" name="add_new_encode1_fo_sources" value="rst_fo_sources" type="submit">RESET</button>
+                                                    </div>
+                                                    <div class="col-6 m-0 p-0 pl-1">
+                                                       <button class="restart" onmousedown="mouseDown(this)" onmouseup="mouseUp(this)" id="encode1_add_new_fo_sources" name="add_new_encode1_fo_sources" value="new_fo_sources" type="submit">REFRESH</button>
+                                                    </div>
+                                                </div>     
+                                            </div>
+                                        </div>
+                                        <div class="row m-0 p-1">
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+											Apply Source</div>
+                                            <div class="col-xl-7 m-0 p-0">
+                                                <div class="row m-0 p-0">
+                                                    <div class="col-6 m-0 p-0"></div>
+                                                    <div class="col-6 m-0 p-0">
+                                                        <button class="restart" onmousedown="mouseDown(this)" onmouseup="mouseUp(this)" name="change_encode1_fo_source_button" value="change_encode1_fo_source" type="submit" form="enc2_form">APPLY</button>
+                                                    </div>
+                                                </div>                                                
+                                            </div>
+                                        </div>
+										<div style="display:none;" class="row m-0 p-1">
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+											Apply GenLock Source</div>
+                                            <div class="col-xl-7 m-0 p-0">
+                                                <div class="row m-0 p-0">
+                                                    <div class="col-6 m-0 p-0"></div>
+                                                    <div class="col-6 m-0 p-0">
+                                                        <button class="restart" onmousedown="mouseDown(this)" onmouseup="mouseUp(this)" name="change_genlock_source_button" value="change_genlock_source" type="submit" form="enc2_form">APPLY</button>
+                                                    </div>
+                                                </div>                                                
+                                            </div>
+                                        </div>
+                                    </div>
+                                  </div>
+                               </div>
+							</form>
+							
+							
+							<form class="dectabcontent" enctype="multipart/form-data"  style="display:none;"  id="dec1_form" autocomplete="off" method="post">
+							
+                            <div class="row m-0 pt-2 div_tab_contents" style="display_: none;">
+                                <div class="col-xl-6 m-0 p-0 pr-xl-2">
+                                    <div>
+										 <div style="display:none;" class="row m-0 p-1">
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+                                                Decode Source Name
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+                                                
+                                                   <input style="text-transform:uppercase" type="text" name="dec0_source_name" id="dec0_source_name" value="None" />
+                                                
+                                            </div>
+                                        </div>
+										<div class="row m-0 p-1" style="display:none;">
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+                                                Decode Source IP
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+                                                
+                                                   <input style="text-transform:uppercase" type="text" name="dec0_source_ip" id="dec0_source_ip" value="None"/>
+                                                
+                                            </div>
+                                        </div>
+										<div style="display:none;" class="row m-0 p-1">
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+                                                Failover Source Name
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+                                                   <input style="text-transform:uppercase" type="text" name="dec0_fo_source_name" id="dec0_fo_source_name" value="None" />
+                                            </div>
+                                        </div>
+										<div class="row m-0 p-1" style="display:none;">
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+                                                Failover Source IP
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+                                                   <input style="text-transform:uppercase" type="text" name="dec0_fo_source_ip" id="dec0_fo_source_ip" value="None"/>
+                                            </div>
+                                        </div>
+										 <div style="display:none;" class="row m-0 p-1">
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+                                                GenLock Source Name
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+                                                
+                                                   <input style="text-transform:uppercase" type="text" name="dec0_genlock_source_name" id="dec0_genlock_source_name" value="None" />
+                                                
+                                            </div>
+                                        </div>
+										<div class="row m-0 p-1" style="display:none;">
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+                                                GenLock Source IP
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+                                                
+                                                   <input style="text-transform:uppercase" type="text" name="dec0_genlock_source_ip" id="dec0_genlock_source_ip" value="None"/>
+                                                
+                                            </div>
+                                        </div>
+										
+									    <div class="row m-0 p-1" >
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+                                                NDI Audio
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+                                                <div class="row m-0 p-0">
+                                                    <div class="col-6 m-0 p-0 pr-1">
+                                                        <input onchange='this.form.submit();'  class="oneradio" type="radio" form="dec1_form" value="NDIAudioEn" id="decode1_ndiaudioen" name="decode_NDIAudio" />
+														<label class="widthb3" for="decode1_ndiaudioen"> ACTIVE </label> 
+                                                    </div>
+                                                    <div class="col-6 m-0 p-0 pl-1">
+                                                        <input onchange='this.form.submit();'  checked  class="oneradio" type="radio" form="dec1_form" value="NDIAudioDis" id="decode1_ndiaudiodis" name="decode_NDIAudio" />
+														<label class="widthb3" for="decode1_ndiaudiodis"> MUTE </label>
+                                                    </div>
+                                                </div>     
+                                            </div>
+                                        </div>
+										
+										<div class="row m-0 p-1"  style="display:none;" >
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+                                                Color Space
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+                                                <div class="row m-0 p-0">
+                                                    <div class="col-6 m-0 p-0 pr-1">
+                                                        <input onchange='this.form.submit();'  class="oneradio" type="radio" form="dec1_form" value="YUV" id="decode1_yuv" name="decode_ColorSpace" />
+														<label class="widthb3" for="decode1_yuv"> YUV </label> 
+                                                    </div>
+                                                    <div class="col-6 m-0 p-0 pl-1">
+                                                        <input onchange='this.form.submit();'  class="oneradio" type="radio" form="dec1_form" value="RGB" id="decode1_rgb" name="decode_ColorSpace" />
+														<label class="widthb3" for="decode1_rgb"> RGB </label>
+                                                    </div>
+                                                </div>     
+                                            </div>
+                                        </div>
+										
+										<div class="row m-0 p-1"  style="display:none;" >
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+                                                Onboard Tally
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+                                                
+												   <span class="custom-dropdown">
+                                                   <select id="decode1_tallymode" name="decode_TallyMode" form="dec1_form" onchange='this.form.submit()'>
+					                               
+					                                <option value="TallyOn"  >ON</option>
+					                               <option value="TallyOff"  >OFF</option>
+					                               <option  value="VideoMode"   >VideoMode</option>
+				                                   </select>
+												   </span>
+                                                    
+                                                        
+                                                    
+                                                
+                                            </div>
+                                        </div>
+										<div class="row m-0 p-1"  style="display:none;" >
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+                                                Decode Screensaver
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+												  <span class="custom-dropdown">
+                                                   <select id="decode1_ssmode" name="decode_ScreenSaverMode" form="dec1_form" onchange='this.form.submit()'>
+					                               <option id="dec1_sel" style="display:none" value=%!s(&lt;nil&gt;)></option>
+					                               <option value="CaptureSS">Capture</option>
+					                               <option value="BlackSS">Black</option>
+					                               <option value="BirdDogSS">BirdDog</option>
+				                                   </select>
+												   </span>                                                
+                                            </div>
+                                        </div>
+										 <div class="row m-0 p-1"  style="display:none;" >
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+                                                Capture Screen Frame
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+                                                <div class="row m-0 p-0">
+                                                    <div class="col-6 m-0 p-0 pr-1"></div>
+                                                    <div class="col-6 m-0 p-0 pl-1">
+                                                        <button class="restart" name="dec0_cap_button" onmousedown="mouseDown(this)" onmouseup="mouseUp(this)" value="dec0_cap"  type="submit" form="dec1_form">CAPTURE</button>  
+                                                    </div>
+                                                </div>     
+                                            </div>
+                                        </div>
+										<div class="row m-0 p-1">
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+                                                NDI Decode Source
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+												 <span class="custom-dropdown">
+                                                   <select id="seldec0" onchange="showdec0(this)" onclick="populateSelectDecodeSrc()">
+												   <option value="None">None</option>
+												   </select>
+												   </body>
+					                            
+												</span>
+                                            </div>
+                                        </div>
+										 <div class="row m-0 p-1">
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+                                                Failover Source
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+												 <span class="custom-dropdown">
+                                                   <select id="dec0_fosel" onchange="dec0_foshow(this)" onclick="populateSelectDecodeSrc()">
+												   <option value="None">None</option>
+												   </select>
+												   </body>
+												</span>
+                                            </div>
+                                        </div>
+										<div class="row m-0 p-1"  style="display:none;" >
+                                            <div class="col-xl-5 m-0 p-0 my-auto" >
+                                                Genlock Source
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+												 <span class="custom-dropdown">
+                                                   <select id="dec0_gensel" onchange="dec0genshow(this)" onclick="populateSelectDecodeSrc()">
+												   <option value="None">None</option>
+												   </select>
+												   </body>
+					                            
+												</span>
+                                            </div>
+                                        </div>
+                                        <div class="row m-0 p-1">
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+                                                Update Source List
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+                                                <div class="row m-0 p-0">
+                                                    <div class="col-6 m-0 p-0 pr-1">
+                                                        <button class="restart" onmousedown="mouseDown(this)" onmouseup="mouseUp(this)" name="add_new_sources" value="rst_sources" type="submit">RESET</button>
+                                                    </div>
+                                                    <div class="col-6 m-0 p-0 pl-1">
+                                                       <button class="restart" onmousedown="mouseDown(this)" onmouseup="mouseUp(this)" name="add_new_sources" value="new_sources" type="submit">REFRESH</button>
+                                                    </div>
+                                                </div>     
+                                            </div>
+                                        </div>
+                                        <div class="row m-0 p-1">
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+											Apply Source</div>
+                                            <div class="col-xl-7 m-0 p-0">
+                                                <div class="row m-0 p-0">
+                                                    <div class="col-6 m-0 p-0"></div>
+                                                    <div class="col-6 m-0 p-0">
+                                                        <button class="restart" onmousedown="mouseDown(this)" onmouseup="mouseUp(this)" name="dec0_change_source_button" value="dec0_change_source" type="submit" form="dec1_form">APPLY</button>
+                                                    </div>
+                                                </div>                                                
+                                            </div>
+                                        </div>
+                                    </div>
+                                 </div>
+                               </div>
+							</form>
+							<form class="dectabcontent" enctype="multipart/form-data"  style="display:none;"  id="dec2_form" autocomplete="off" method="post">
+                            <div class="border_bottom pb-2">
+				            <div class="col-xl-12 m-0 p-0">
+                            <div class="row m-0 p-0">
+                             <div class="col-11 m-0 p-0">
+                               </div>
+								 <div class="col-1 m-0 p-0" style="min-width:95px;">
+								 
+                                 <button class="restart" type="submit" name="dec1_restart_button" value="enc1_restart" onmousedown="mouseDown(this)" onmouseup="mouseUp(this)" form="dec2_form" type="submit">RESTART</button>
+                                 </div>
+                              </div>
+                            </div>
+			                </div>
+                            <div class="row m-0 pt-2 div_tab_contents" style="display_: none;">
+                                <div class="col-xl-6 m-0 p-0 pr-xl-2">
+                                    <div>
+										 <div style="display:none;" class="row m-0 p-1">
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+                                                Decode Source Name
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+                                                
+                                                   <input style="text-transform:uppercase" type="text" name="dec1_source_name" id="dec1_source_name" value="" />
+                                                
+                                            </div>
+                                        </div>
+										<div class="row m-0 p-1" style="display:none;">
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+                                                Decode Source IP
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+                                                
+                                                   <input style="text-transform:uppercase" type="text" name="dec1_source_ip" id="dec1_source_ip" value=""/>
+                                                
+                                            </div>
+                                        </div>
+										<div style="display:none;" class="row m-0 p-1">
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+                                                Failover Source Name
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+                                                   <input style="text-transform:uppercase" type="text" name="dec1_fo_source_name" id="dec1_fo_source_name" value="" />
+                                            </div>
+                                        </div>
+										<div class="row m-0 p-1" style="display:none;">
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+                                                Failover Source IP
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+                                                   <input style="text-transform:uppercase" type="text" name="dec1_fo_source_ip" id="dec1_fo_source_ip" value=""/>
+                                            </div>
+                                        </div>
+										<div style="display:none;" class="row m-0 p-1">
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+                                                GenLock Source Name
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+                                                
+                                                   <input style="text-transform:uppercase" type="text" name="dec1_genlock_source_name" id="dec1_genlock_source_name" value="" />
+                                                
+                                            </div>
+                                        </div>
+										<div class="row m-0 p-1" style="display:none;">
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+                                                GenLock Source IP
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+                                                
+                                                   <input style="text-transform:uppercase" type="text" name="dec1_genlock_source_ip" id="dec1_genlock_source_ip" value=""/>
+                                                
+                                            </div>
+                                        </div>
+									    <div class="row m-0 p-1" >
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+                                                NDI Audio
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+                                                <div class="row m-0 p-0">
+                                                    <div class="col-6 m-0 p-0 pr-1">
+                                                        <input onchange='this.form.submit();'  class="oneradio" type="radio" form="dec2_form" value="NDIAudioEn" id="decode2_ndiaudioen" name="decode1_NDIAudio" />
+														<label class="widthb3" for="decode2_ndiaudioen"> ACTIVE </label> 
+                                                    </div>
+                                                    <div class="col-6 m-0 p-0 pl-1">
+                                                        <input onchange='this.form.submit();'  class="oneradio" type="radio" form="dec2_form" value="NDIAudioDis" id="decode2_ndiaudiodis" name="decode1_NDIAudio" />
+														<label class="widthb3" for="decode2_ndiaudiodis"> MUTE </label>
+                                                    </div>
+                                                </div>     
+                                            </div>
+                                        </div>
+										<div class="row m-0 p-1" >
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+                                                Color Space
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+                                                <div class="row m-0 p-0">
+                                                    <div class="col-6 m-0 p-0 pr-1">
+                                                        <input onchange='this.form.submit();'  class="oneradio" type="radio" form="dec2_form" value="YUV" id="decode2_yuv" name="decode1_ColorSpace" />
+														<label class="widthb3" for="decode2_yuv"> YUV </label> 
+                                                    </div>
+                                                    <div class="col-6 m-0 p-0 pl-1">
+                                                        <input onchange='this.form.submit();'  class="oneradio" type="radio" form="dec2_form" value="RGB" id="decode2_rgb" name="decode1_ColorSpace" />
+														<label class="widthb3" for="decode2_rgb"> RGB </label>
+                                                    </div>
+                                                </div>     
+                                            </div>
+                                        </div>
+										<div class="row m-0 p-1" >
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+                                                Onboard Tally
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+                                                
+												   <span class="custom-dropdown">
+                                                   <select id="decode2_tallymode" name="decode1_TallyMode" form="dec2_form" onchange='this.form.submit()'>
+					                               
+					                               <option value="TallyOn"  >ON</option>
+					                               <option value="TallyOff"  >OFF</option>
+					                               <option value="VideoMode"  >VideoMode</option>
+				                                   </select>
+												   </span>
+                                                    
+                                                        
+                                                    
+                                                
+                                            </div>
+                                        </div>
+										<div class="row m-0 p-1">
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+                                                Decode Screensaver
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+												  <span class="custom-dropdown">
+                                                   <select id="decode2_ssmode" name="decode1_ScreenSaverMode" form="dec2_form" onchange='this.form.submit()'>
+					                               <option id="dec2_sel" style="display:none" value=%!s(&lt;nil&gt;)></option>
+					                               <option value="CaptureSS">Capture</option>
+					                               <option value="BlackSS">Black</option>
+					                               <option value="BirdDogSS">BirdDog</option>
+				                                   </select>
+												   </span>                                                
+                                            </div>
+                                        </div>
+										 <div class="row m-0 p-1">
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+                                                Capture Screen Frame
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+                                                <div class="row m-0 p-0">
+                                                    <div class="col-6 m-0 p-0 pr-1"></div>
+                                                    <div class="col-6 m-0 p-0 pl-1">
+                                                        <button class="restart" name="dec1_cap_button" onmousedown="mouseDown(this)" onmouseup="mouseUp(this)" value="dec1_cap"  type="submit" form="dec2_form">CAPTURE</button>  
+                                                    </div>
+                                                </div>     
+                                            </div>
+                                        </div>
+										<div class="row m-0 p-1">
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+                                                NDI Decode Source
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+												 <span class="custom-dropdown">
+                                                   <select id="seldec1" onchange="showdec1(this)" onclick="populateSelectDecodeSrc()">
+												   <option value=""></option>
+												   </select>
+												   </body>
+					                            
+												</span>
+                                            </div>
+                                        </div>
+										 <div class="row m-0 p-1">
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+                                                Failover Source
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+												 <span class="custom-dropdown">
+                                                   <select id="dec1_fosel" onchange="dec1_foshow(this)" onclick="populateSelectDecodeSrc()">
+												   <option value=""></option>
+												   </select>
+												   </body>
+												</span>
+                                            </div>
+                                        </div>
+										<div class="row m-0 p-1">
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+                                                Genlock Source
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+												 <span class="custom-dropdown">
+                                                   <select id="dec1_gensel" onchange="dec1genshow(this)" onclick="populateSelectDecodeSrc()">
+												   <option value=""></option>
+												   </select>
+												   </body>
+					                            
+												</span>
+                                            </div>
+                                        </div>
+                                        <div class="row m-0 p-1">
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+                                                Update Source List
+                                            </div>
+                                            <div class="col-xl-7 m-0 p-0">
+                                                <div class="row m-0 p-0">
+                                                    <div class="col-6 m-0 p-0 pr-1">
+                                                        <button class="restart" onmousedown="mouseDown(this)" onmouseup="mouseUp(this)" name="add_new_sources" value="rst_sources" type="submit">RESET</button>
+                                                    </div>
+                                                    <div class="col-6 m-0 p-0 pl-1">
+                                                       <button class="restart" onmousedown="mouseDown(this)" onmouseup="mouseUp(this)" name="add_new_sources" value="new_sources" type="submit">REFRESH</button>
+                                                    </div>
+                                                </div>     
+                                            </div>
+                                        </div>
+                                        <div class="row m-0 p-1">
+                                            <div class="col-xl-5 m-0 p-0 my-auto">
+											Apply Source</div>
+                                            <div class="col-xl-7 m-0 p-0">
+                                                <div class="row m-0 p-0">
+                                                    <div class="col-6 m-0 p-0"></div>
+                                                    <div class="col-6 m-0 p-0">
+                                                        <button class="restart" onmousedown="mouseDown(this)" onmouseup="mouseUp(this)" name="dec1_change_source_button" value="dec1_change_source" type="submit" form="dec2_form">APPLY</button>
+                                                    </div>
+                                                </div>                                                
+                                            </div>
+                                        </div>
+                                    </div>
+                                 </div>
+                               </div>
+							</form>
+							
+							
+						</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+</body>
+<script>
+    
+    $( document ).ready(function() { 
+        $(".div_selectable_box").on("click", function(e){
+            var target = $(this).attr("target");
+            $(".div_selectable_box").removeClass("active");
+            $(this).addClass("active");
+            $("#div_advanced_settings_content .div_tab_contents").hide();
+            $("#div_advanced_settings_content #"+target).show();
+        });
+    });
+	
+	function audiogaintxt(val) {
+    if(val < 50){
+    val = val - 50;
+     }
+    else if(val == 50){
+    val = 0
+     }else{
+    val = val - 50;
+     }
+     return val+"dB";
+    } 
+	
+	$('#ajingainText').text(audiogaintxt($('#ajingain').val()));
+
+    $('#ajingain').on('input change', function () {
+        $('#ajingainText').text(audiogaintxt($(this).val()));
+    });
+	
+	
+	$('#ajoutgainText').text(audiogaintxt($('#ajoutgain').val()));
+
+    $('#ajoutgain').on('input change', function () {
+        $('#ajoutgainText').text(audiogaintxt($(this).val()));
+    });
+	
+	function openTab(evt, cityName) {
+		var i, tabcontent, tablinks;
+		tabcontent = document.getElementsByClassName("tabcontent");
+		for (i = 0; i < tabcontent.length; i++) {
+			tabcontent[i].style.display = "none";
+			setCookie(tabcontent[i].id,"none",7);
+		}
+		
+		tablinks = document.getElementsByClassName("tablinks");
+		for (i = 0; i < tablinks.length; i++) {
+			tablinks[i].className = tablinks[i].className.replace(" active", " ");
+		}
+		
+		document.getElementById(cityName).style.display = "block";
+		evt.currentTarget.className += " active";
+		setCookie(cityName,"block",7);
+	}
+	
+	function opendecTab(evt, cityName) {
+		var i, tabcontent, tablinks;
+		tabcontent = document.getElementsByClassName("dectabcontent");
+		for (i = 0; i < tabcontent.length; i++) {
+			tabcontent[i].style.display = "none";
+			setCookie(tabcontent[i].id,"none",7);
+		}
+		
+		tablinks = document.getElementsByClassName("dectablinks");
+		for (i = 0; i < tablinks.length; i++) {
+			tablinks[i].className = tablinks[i].className.replace(" active", " ");
+		}
+		
+		document.getElementById(cityName).style.display = "block";
+		evt.currentTarget.className += " active";
+		setCookie(cityName,"block",7);
+	}
+
+
+	
+	$('#encode_bwText').text($('#encode_bw').val());
+
+    $('#encode_bw').on('input change', function () {
+        $('#encode_bwText').text($(this).val());
+    });
+	
+	$('#encode1_bwText').text($('#encode1_bw').val());
+
+    $('#encode1_bw').on('input change', function () {
+        $('#encode1_bwText').text($(this).val());
+    });
+	
+	$('#encode2_bwText').text($('#encode2_bw').val());
+
+    $('#encode2_bw').on('input change', function () {
+        $('#encode2_bwText').text($(this).val());
+    });
+	
+	$('#encode3_bwText').text($('#encode3_bw').val());
+
+    $('#encode3_bw').on('input change', function () {
+        $('#encode3_bwText').text($(this).val());
+    });
+	
+	function populateSelectDecodeSrc() {
+	 
+	 
+        var foele = document.getElementById('fosel');
+		
+        var genele = document.getElementById('gensel');
+		
+		var encode1_foele = document.getElementById('encode1_fosel');
+		
+        var encode1_genele = document.getElementById('encode1_gensel');
+		
+		var encode2_foele = document.getElementById('encode2_fosel');
+		
+        var encode2_genele = document.getElementById('encode2_gensel');
+		
+		var encode3_foele = document.getElementById('encode3_fosel');
+		
+        var encode3_genele = document.getElementById('encode3_gensel');
+		
+		 var eledec0 = document.getElementById('seldec0');
+		 
+		 var eledec1 = document.getElementById('seldec1');
+		 
+		 var eledec2 = document.getElementById('seldec2');
+		 
+		 var eledec3 = document.getElementById('seldec3');
+		 
+		 var eledec0fosel = document.getElementById('dec0_fosel');
+		 
+		 var eledec1fosel = document.getElementById('dec1_fosel');
+		 
+		 var eledec2fosel = document.getElementById('dec2_fosel');
+		 
+		 var eledec3fosel = document.getElementById('dec3_fosel');
+		 
+		 var eledec0gensel = document.getElementById('dec0_gensel');
+		 
+		 var eledec1gensel = document.getElementById('dec1_gensel');
+		 
+		 var eledec2gensel = document.getElementById('dec2_gensel');
+		 
+		 var eledec3gensel = document.getElementById('dec3_gensel');
+		
+		$.getJSON('http://' + "192.168.1.40" + ':8080/List', function (data) {
+		
+		
+		
+		if("%!s(\u003cnil\u003e)" == "dualencode"){
+		
+		    foele.innerHTML = 
+				'<option value="' + document.getElementById ("fo_source_ip").value + '">' + document.getElementById ("fo_source_name").value + '</option>';
+				
+			genele.innerHTML = 
+				'<option value="' + document.getElementById ("genlock_source_ip").value + '">' + document.getElementById ("genlock_source_name").value + '</option>';
+				
+			encode1_foele.innerHTML = 
+				'<option value="' + document.getElementById ("encode1_fo_source_ip").value + '">' + document.getElementById ("encode1_fo_source_name").value + '</option>';
+				
+			encode1_genele.innerHTML = 
+				'<option value="' + document.getElementById ("encode1_genlock_source_ip").value + '">' + document.getElementById ("encode1_genlock_source_name").value + '</option>';
+	
+	    }else if("%!s(\u003cnil\u003e)" == "encode"){
+		
+			foele.innerHTML = 
+				'<option value="' + document.getElementById ("fo_source_ip").value + '">' + document.getElementById ("fo_source_name").value + '</option>';
+				
+			genele.innerHTML = 
+				'<option value="' + document.getElementById ("genlock_source_ip").value + '">' + document.getElementById ("genlock_source_name").value + '</option>';
+	
+	    }else{
+		     eledec0.innerHTML = 
+				'<option value="' + document.getElementById ("dec0_source_ip").value + '">' + document.getElementById ("dec0_source_name").value + '</option>';
+			
+			 eledec0fosel.innerHTML = 
+				'<option value="' + document.getElementById ("dec0_fo_source_ip").value + '">' + document.getElementById ("dec0_fo_source_name").value + '</option>';
+				
+			 eledec0gensel.innerHTML = 
+				'<option value="' + document.getElementById ("dec0_genlock_source_ip").value + '">' + document.getElementById ("dec0_genlock_source_name").value + '</option>';
+				
+	   }
+		
+			
+			$.each(data, function(key, value){
+				if (key != "") {
+				
+				
+		            
+		
+		    if("%!s(\u003cnil\u003e)" == "dualencode"){
+		
+		            foele.innerHTML = foele.innerHTML +
+					'<option value="' + value + '">' + key + '</option>';
+					
+					genele.innerHTML = genele.innerHTML +
+					'<option value="' + value + '">' + key + '</option>';
+					
+					encode1_foele.innerHTML = encode1_foele.innerHTML +
+					'<option value="' + value + '">' + key + '</option>';
+					
+					encode1_genele.innerHTML = encode1_genele.innerHTML +
+					'<option value="' + value + '">' + key + '</option>';
+	
+	    }else if("%!s(\u003cnil\u003e)" == "encode"){
+		
+			        foele.innerHTML = foele.innerHTML +
+					'<option value="' + value + '">' + key + '</option>';
+					
+					genele.innerHTML = genele.innerHTML +
+					'<option value="' + value + '">' + key + '</option>';
+	
+	    }else{
+		            eledec0.innerHTML = eledec0.innerHTML +
+					'<option value="' + value + '">' + key + '</option>';
+					
+					eledec0fosel.innerHTML = eledec0fosel.innerHTML +
+					'<option value="' + value + '">' + key + '</option>';
+					
+					eledec0gensel.innerHTML = eledec0gensel.innerHTML +
+					'<option value="' + value + '">' + key + '</option>';
+	   }
+		
+				}
+			});
+		});
+		
+		var enc_val =  "%!s(\u003cnil\u003e)";
+	    var enc1_val = "%!s(\u003cnil\u003e)";
+	    var enc2_val = "%!s(\u003cnil\u003e)";
+	    var enc3_val = "%!s(\u003cnil\u003e)";
+		
+		var dec_val  = "%!s(\u003cnil\u003e)";
+	    var dec1_val = "%!s(\u003cnil\u003e)";
+	    var dec2_val = "%!s(\u003cnil\u003e)";
+	    var dec3_val = "%!s(\u003cnil\u003e)";
+		
+		
+	
+	if("%!s(\u003cnil\u003e)" == "dualencode"){
+	
+	  if(getCookie('enc1_form') == "block")
+		{
+			document.getElementById("enc1_form").style.display = "block";
+			document.getElementById("tab0").className += " active";	
+		} else {
+			document.getElementById("enc1_form").style.display = "none";
+			document.getElementById("tab0").className.replace(" active", "");	
+		}
+		
+		if(getCookie('enc2_form') == "block")
+		{
+			document.getElementById("enc2_form").style.display = "block";
+			document.getElementById("tab2").className += " active";	
+		} else {
+			document.getElementById("enc2_form").style.display = "none";
+			document.getElementById("tab2").className.replace(" active", "");	
+		}
+		
+		document.getElementById("enc_sel").text = enc_val.replace("SS","");
+	    document.getElementById("enc1_sel").text = enc1_val.replace("SS","");
+		
+		if((getCookie('enc1_form') == undefined && getCookie('enc2_form') == undefined) || (getCookie('enc1_form') == 'none' && getCookie('enc2_form') == 'none'))
+		{
+			document.getElementById("enc1_form").style.display = "block";
+		}
+	
+	}else if("%!s(\u003cnil\u003e)" == "encode"){
+	document.getElementById("enc1_form").style.display = "block";
+	document.getElementById("enc_sel").text = enc_val.replace("SS","");
+	}else{
+	document.getElementById("dec1_form").style.display = "block";
+	document.getElementById("dec1_sel").text = dec_val.replace("SS","");
+	}
+	
+	
+		
+    }
+	
+	function showdec0(eledec) {
+        
+		var nameArr = eledec.options[eledec.selectedIndex].text;
+		var IPArr = eledec.options[eledec.selectedIndex].value;
+        document.getElementById ("dec0_source_name").value =nameArr;
+		document.getElementById ("dec0_source_ip").value =IPArr;
+    }
+	
+	function showdec1(eledec) {
+        
+		var nameArr = eledec.options[eledec.selectedIndex].text;
+		var IPArr = eledec.options[eledec.selectedIndex].value;
+        document.getElementById ("dec1_source_name").value =nameArr;
+		document.getElementById ("dec1_source_ip").value =IPArr;
+    }
+	
+	function showdec2(eledec) {
+        
+		var nameArr = eledec.options[eledec.selectedIndex].text;
+		var IPArr = eledec.options[eledec.selectedIndex].value;
+        document.getElementById ("dec2_source_name").value =nameArr;
+		document.getElementById ("dec2_source_ip").value =IPArr;
+    }
+	
+	function showdec3(eledec) {
+        
+		var nameArr = eledec.options[eledec.selectedIndex].text;
+		var IPArr = eledec.options[eledec.selectedIndex].value;
+        document.getElementById ("dec3_source_name").value =nameArr;
+		document.getElementById ("dec3_source_ip").value =IPArr;
+    }
+	
+	function foshow(foele) {
+        
+		var nameArr = foele.options[foele.selectedIndex].text;
+		var IPArr = foele.options[foele.selectedIndex].value;
+        document.getElementById ("fo_source_name").value =nameArr;
+		document.getElementById ("fo_source_ip").value =IPArr;
+    }
+	
+	function enc1foshow(foele) {
+        
+		var nameArr = foele.options[foele.selectedIndex].text;
+		var IPArr = foele.options[foele.selectedIndex].value;
+        document.getElementById ("encode1_fo_source_name").value =nameArr;
+		document.getElementById ("encode1_fo_source_ip").value =IPArr;
+    }
+	
+	function enc2foshow(foele) {
+        
+		var nameArr = foele.options[foele.selectedIndex].text;
+		var IPArr = foele.options[foele.selectedIndex].value;
+        document.getElementById ("encode2_fo_source_name").value =nameArr;
+		document.getElementById ("encode2_fo_source_ip").value =IPArr;
+    }
+	
+	function enc3foshow(foele) {
+        
+		var nameArr = foele.options[foele.selectedIndex].text;
+		var IPArr = foele.options[foele.selectedIndex].value;
+        document.getElementById ("encode3_fo_source_name").value =nameArr;
+		document.getElementById ("encode3_fo_source_ip").value =IPArr;
+    }
+	
+	function dec0_foshow(ele) {
+        
+		var nameArr = ele.options[ele.selectedIndex].text;
+		var IPArr = ele.options[ele.selectedIndex].value;
+        document.getElementById ("dec0_fo_source_name").value =nameArr;
+		document.getElementById ("dec0_fo_source_ip").value =IPArr;
+    }
+	
+	function dec1_foshow(ele) {
+        
+		var nameArr = ele.options[ele.selectedIndex].text;
+		var IPArr = ele.options[ele.selectedIndex].value;
+        document.getElementById ("dec1_fo_source_name").value =nameArr;
+		document.getElementById ("dec1_fo_source_ip").value =IPArr;
+    }
+	
+	function dec2_foshow(ele) {
+        
+		var nameArr = ele.options[ele.selectedIndex].text;
+		var IPArr = ele.options[ele.selectedIndex].value;
+        document.getElementById ("dec2_fo_source_name").value =nameArr;
+		document.getElementById ("dec2_fo_source_ip").value =IPArr;
+    }
+	
+	function dec3_foshow(ele) {
+        
+		var nameArr = ele.options[ele.selectedIndex].text;
+		var IPArr = ele.options[ele.selectedIndex].value;
+        document.getElementById ("dec3_fo_source_name").value =nameArr;
+		document.getElementById ("dec3_fo_source_ip").value =IPArr;
+    }
+	
+	function RedirectFo(){
+		var ele = document.getElementById('fosel');
+		var selectedText = ele.options[ele.selectedIndex].value;
+		if( selectedText != "None" )
+		{	
+			var res = selectedText.substring(0, selectedText.indexOf(':'));
+			url = 'http://'+res+'/login';
+			window.open(url, "_blank");
+		}
+	}
+	
+	function genshow(genele) {
+        
+		var nameArr = genele.options[genele.selectedIndex].text;
+		var IPArr = genele.options[genele.selectedIndex].value;
+        document.getElementById ("genlock_source_name").value =nameArr;
+		document.getElementById ("genlock_source_ip").value =IPArr;
+    }
+	
+	function enc1genshow(genele) {
+        
+		var nameArr = genele.options[genele.selectedIndex].text;
+		var IPArr = genele.options[genele.selectedIndex].value;
+        document.getElementById ("encode1_genlock_source_name").value =nameArr;
+		document.getElementById ("encode1_genlock_source_ip").value =IPArr;
+    }
+	
+	function enc2genshow(genele) {
+        
+		var nameArr = genele.options[genele.selectedIndex].text;
+		var IPArr = genele.options[genele.selectedIndex].value;
+        document.getElementById ("encode2_genlock_source_name").value =nameArr;
+		document.getElementById ("encode2_genlock_source_ip").value =IPArr;
+    }
+	
+	function enc3genshow(genele) {
+        
+		var nameArr = genele.options[genele.selectedIndex].text;
+		var IPArr = genele.options[genele.selectedIndex].value;
+        document.getElementById ("encode3_genlock_source_name").value =nameArr;
+		document.getElementById ("encode3_genlock_source_ip").value =IPArr;
+    }
+	
+	function dec0genshow(genele) {
+        
+		var nameArr = genele.options[genele.selectedIndex].text;
+		var IPArr = genele.options[genele.selectedIndex].value;
+        document.getElementById ("dec0_genlock_source_name").value =nameArr;
+		document.getElementById ("dec0_genlock_source_ip").value =IPArr;
+    }
+	
+	function dec1genshow(genele) {
+        
+		var nameArr = genele.options[genele.selectedIndex].text;
+		var IPArr = genele.options[genele.selectedIndex].value;
+        document.getElementById ("dec1_genlock_source_name").value =nameArr;
+		document.getElementById ("dec1_genlock_source_ip").value =IPArr;
+    }
+	
+	function dec2genshow(genele) {
+        
+		var nameArr = genele.options[genele.selectedIndex].text;
+		var IPArr = genele.options[genele.selectedIndex].value;
+        document.getElementById ("dec2_genlock_source_name").value =nameArr;
+		document.getElementById ("dec2_genlock_source_ip").value =IPArr;
+    }
+	
+	function dec3genshow(genele) {
+        
+		var nameArr = genele.options[genele.selectedIndex].text;
+		var IPArr = genele.options[genele.selectedIndex].value;
+        document.getElementById ("dec3_genlock_source_name").value =nameArr;
+		document.getElementById ("dec3_genlock_source_ip").value =IPArr;
+    }
+	
+	function RedirectFo(){
+		var ele = document.getElementById('gensel');
+		var selectedText = ele.options[ele.selectedIndex].value;
+		if( selectedText != "None" )
+		{	
+			var res = selectedText.substring(0, selectedText.indexOf(':'));
+			url = 'http://'+res+'/login';
+			window.open(url, "_blank");
+		}
+	}
+	
+	function mouseDown(ele) {
+    ele.style.background = "rgb(34, 178, 76)"; 
+    }
+
+    function mouseUp(ele) {
+    ele.style.background = "rgb(29, 31, 33)";
+    }
+	
+	$('#ndivideoqm').on('change', function (e) {
+	if (this.value == "Manual"){
+	e.preventDefault()
+	var modal = document.getElementById("myModal");
+	var span = document.getElementsByClassName("close")[0];
+	var msg = document.getElementsByClassName("err_msg")[0];
+	document.getElementsByClassName("modal-content")[0].style.width = '40%';
+	msg.innerHTML = "NDI video bandwidth settings should be changed with consideration to your overall network capabilities. Typical bitrate for 1080p is 120Mbps. Increasing this can add additional load to software receivers that may result in unpredictable behaviour, while lower bandwidth can affect image quality.";
+	$(".err_msg").removeClass("d-none");
+	$(".popup_submit").removeClass("d-none");
+	$(".popup_enc1_submit").addClass("d-none");
+	$(".popup_enc2_submit").addClass("d-none");
+	$(".popup_enc3_submit").addClass("d-none");
+	$(".popup_div_submit").addClass("d-none");
+	modal.style.display = "block";
+	  span.onclick = function() {
+	  $('#ndivideoqm').val("NDIManaged");
+      modal.style.display = "none";
+      }
+	  
+	  
+      window.onclick = function(event) {
+        if (event.target == modal) {
+          modal.style.display = "none";
+          }
+        }
+	  }else{
+	  this.form.submit();
+	  }
+    })
+	
+	$('#encode1_ndivideoqm').on('change', function (e) {
+	if (this.value == "Manual"){
+    e.preventDefault()
+	var modal = document.getElementById("myModal");
+	var span = document.getElementsByClassName("close")[0];
+	var msg = document.getElementsByClassName("err_msg")[0];
+	document.getElementsByClassName("modal-content")[0].style.width = '40%';
+	msg.innerHTML = "NDI video bandwidth settings should be changed with consideration to your overall network capabilities. Typical bitrate for 1080p is 120Mbps. Increasing this can add additional load to software receivers that may result in unpredictable behaviour, while lower bandwidth can affect image quality.";
+	$(".err_msg").removeClass("d-none");
+	$(".popup_submit").addClass("d-none");
+	$(".popup_enc1_submit").removeClass("d-none");
+	$(".popup_enc2_submit").addClass("d-none");
+	$(".popup_enc3_submit").addClass("d-none");
+	$(".popup_div_submit").addClass("d-none");
+	modal.style.display = "block";
+	  span.onclick = function() {
+	  $('#encode1_ndivideoqm').val("NDIManaged");
+      modal.style.display = "none";
+      }
+	  
+	  
+      window.onclick = function(event) {
+        if (event.target == modal) {
+          modal.style.display = "none";
+        }
+      }
+	   }else{
+	  this.form.submit();
+	  }
+    })
+	
+	$('#encode2_ndivideoqm').on('change', function (e) {
+	if (this.value == "Manual"){
+    e.preventDefault()
+	var modal = document.getElementById("myModal");
+	var span = document.getElementsByClassName("close")[0];
+	var msg = document.getElementsByClassName("err_msg")[0];
+	document.getElementsByClassName("modal-content")[0].style.width = '40%';
+	msg.innerHTML = "NDI video bandwidth settings should be changed with consideration to your overall network capabilities. Typical bitrate for 1080p is 120Mbps. Increasing this can add additional load to software receivers that may result in unpredictable behaviour, while lower bandwidth can affect image quality.";
+	$(".err_msg").removeClass("d-none");
+	$(".popup_submit").addClass("d-none");
+	$(".popup_enc1_submit").addClass("d-none");
+	$(".popup_enc2_submit").removeClass("d-none");
+	$(".popup_enc3_submit").addClass("d-none");
+	$(".popup_div_submit").addClass("d-none");
+	modal.style.display = "block";
+	  span.onclick = function() {
+	  $('#encode2_ndivideoqm').val("NDIManaged");
+      modal.style.display = "none";
+      }
+	  
+	  
+      window.onclick = function(event) {
+        if (event.target == modal) {
+          modal.style.display = "none";
+        }
+       }
+	  }else{
+	  this.form.submit();
+	  }
+    })
+	
+	$('#encode3_ndivideoqm').on('change', function (e) {
+	if (this.value == "Manual"){
+    e.preventDefault()
+	var modal = document.getElementById("myModal");
+	var span = document.getElementsByClassName("close")[0];
+	var msg = document.getElementsByClassName("err_msg")[0];
+	document.getElementsByClassName("modal-content")[0].style.width = '40%';
+	msg.innerHTML = "NDI video bandwidth settings should be changed with consideration to your overall network capabilities. Typical bitrate for 1080p is 120Mbps. Increasing this can add additional load to software receivers that may result in unpredictable behaviour, while lower bandwidth can affect image quality.";
+	$(".err_msg").removeClass("d-none");
+	$(".popup_submit").addClass("d-none");
+	$(".popup_enc1_submit").addClass("d-none");
+	$(".popup_enc2_submit").addClass("d-none");
+	$(".popup_enc3_submit").removeClass("d-none");
+	$(".popup_div_submit").addClass("d-none");
+	modal.style.display = "block";
+	  span.onclick = function() {
+	  $('#encode3_ndivideoqm').val("NDIManaged");
+      modal.style.display = "none";
+      }
+	  
+	  
+      window.onclick = function(event) {
+        if (event.target == modal) {
+          modal.style.display = "none";
+        }
+      }
+	   }else{
+	  this.form.submit();
+	  }
+    })
+	
+	$('#lowlatency').click(function(e){
+	e.preventDefault()
+	var modal = document.getElementById("myModal");
+	var span = document.getElementsByClassName("close")[0];
+	var msg = document.getElementsByClassName("err_msg")[0];
+	document.getElementsByClassName("modal-content")[0].style.width = '40%';
+	msg.innerHTML = "Warning! this will disable the HDMI output, SDI output and the OSD";
+	$(".err_msg").removeClass("d-none");
+	$(".popup_submit").addClass("d-none");
+	$(".popup_enc1_submit").addClass("d-none");
+	$(".popup_enc2_submit").addClass("d-none");
+	$(".popup_enc3_submit").addClass("d-none");
+	$(".popup_div_submit").removeClass("d-none");
+	modal.style.display = "block";
+	  span.onclick = function() {
+      modal.style.display = "none";
+      }
+	  
+	  
+      window.onclick = function(event) {
+        if (event.target == modal) {
+          modal.style.display = "none";
+        }
+      }
+	
+    })
+	
+	function sleep(lf_ms) {
+    return new Promise(resolve => setTimeout(resolve, lf_ms));
+    }
+	
+	async function popFunction(evt,form) {
+		if("%!s(\u003cnil\u003e)" != evt.currentTarget.id)
+		{
+				<!-- document.getElementById("encode").checked = ("%!s(\u003cnil\u003e)" == "decode"); -->
+				<!-- document.getElementById("decode").checked = !("%!s(\u003cnil\u003e)" == "decode");	 -->
+				<!--  -->
+			if (confirm('PLEASE NOTE: To apply this setting THE SYSTEM WILL REBOOT')) 
+			{
+				form.submit();
+				await sleep(50);
+				
+			} else 
+			{
+			    document.getElementById("encode").checked = ("%!s(\u003cnil\u003e)" == "encode");
+				document.getElementById("decode").checked = ("%!s(\u003cnil\u003e)" == "decode");	
+	            
+				return false;
+			}
+			window.location.href = '/reboot';
+		}
+	}
+	
+	
+</script>
+ 
+		
+		
+        </div>
+
+        <div class="div_social p-4 mx-auto d-block d-xl-none">
+          <div style="max-width: 400px; display: inline-table;">
+            <div class="div_social_button">
+              <a href="https://www.facebook.com/birddog.tv/" target="_blank">
+                <button class="btn_img"><img src="/static/social/FB_40x40.svg"
+                    style="height: 35px;" /></button>
+              </a>
+            </div>
+            <div class="div_social_button">
+              <a href="https://twitter.com/bird_dog_gear?lang=en" target="_blank">
+                <button class="btn_img"><img src="/static/social/TW_40x40.svg"
+                    style="height: 35px;" /></button>
+              </a>
+            </div>
+            <div class="div_social_button">
+              <a href="https://www.instagram.com/birddog.tv/" target="_blank">
+                <button class="btn_img"><img src="/static/social/IG_40x40.svg"
+                    style="height: 35px;" /></button>
+              </a>
+            </div>
+            <div class="div_social_button">
+              <a href="https://www.youtube.com/channel/UCBQxUCeyg9vqNZ5tm54gbVg" target="_blank">
+                <button class="btn_img"><img src="/static/social/YT_40x40.svg"
+                    style="height: 35px;" /></button>
+              </a>
+            </div>
+            <div class="div_social_button">
+              <a href="https://www.linkedin.com/company/birddog-australia/" target="_blank">
+                <button class="btn_img"><img src="/static/social/IN_40x40.svg"
+                    style="height: 35px;" /></button>
+              </a>
+            </div>
+          </div>
+          <div class="mt-2">
+			<a href="https://birddog.tv/" target="_blank">
+              <button class="website btn_img font_gray_color">BirdDog.tv</button>
+			</a>
+            </div>
+        </div>
+
+      </div>
+    </div>
+  
+  </div>
+
+  <div class="modal fade" id="modal_version" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-sm">
+      <div class="modal-content back_dark_gray_color">
+        <div class="modal-body">
+          <div class="mx-auto">
+            <span class="font_white_color">Dashboard Version </span>
+            <span class="font_white_color" id="span_version">1.0</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade cm_right_modal" id="modal_chat" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="arrow-up" style="position: absolute; top: Calc(70px + 1rem - 15px); right: Calc(50px + 1rem);"></div>
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content back_gray_color">
+        <div class="modal-body">
+          <div class="div_modal_tab">
+            <div class="row m-0 p-0">
+              <div class="col-md-6 col-xl-3 m-0 p-1">
+                <div class="btn_common btn_chat_tab active" target="div_new_ticket">
+                  NEW TICKET
+                </div>
+              </div>
+              <div class="col-md-6 col-xl-3 m-0 p-1">
+                <div class="btn_common btn_chat_tab" target="div_my_tickets">
+                  MY TICKETS
+                </div>
+              </div>
+              <div class="col-md-6 col-xl-3 m-0 p-1">
+                <div class="btn_common btn_chat_tab">
+                  SUPPORT PAGE
+                </div>
+              </div>
+              <div class="col-md-6 col-xl-3 m-0 p-1">
+                <div class="btn_common btn_chat_tab">
+                  OPEN FB GROUP
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="div_modal_tab_contents" id="div_chat_contents">
+
+            <div class="div_tab_contents" id="div_new_ticket">
+              <div class="row m-0 p-0">
+                <div class="col-xl-6 m-0 p-1">
+                  <div class="ele_common">
+                    First Name
+                  </div>
+                </div>
+                <div class="col-xl-6 m-0 p-1">
+                  <div class="ele_common">
+                    Last Name
+                  </div>
+                </div>
+                <div class="col-xl-6 m-0 p-1">
+                  <div class="ele_common">
+                    Email
+                  </div>
+                </div>
+                <div class="col-xl-6 m-0 p-1">
+                  <div class="ele_common">
+                    What Region are you in?
+                    <button class="btn_img cm_right_icon">
+                      <img src="/static/general/vertical-menu.svg" style="height: 30px;" />
+                    </button>
+                  </div>
+                </div>
+                <div class="col-12 m-0 p-1">
+                  <div class="ele_common">
+                    Ticket Title
+                  </div>
+                </div>
+                <div class="col-12 m-0 p-1">
+                  <div class="ele_common" style="height: 250px !important;">
+                    Ticket Details
+                  </div>
+                </div>
+              </div>
+              <div class="row m-0 p-0">
+                <div class="col-xl-6 m-0 p-1 d-none d-xl-inline-block"></div>
+                <div class="col-xl-3 m-0 p-1">
+                  <div class="btn_common">
+                    RESET
+                  </div>
+                </div>
+                <div class="col-xl-3 m-0 p-1">
+                  <div class="btn_common active">
+                    SUBMIT
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="div_tab_contents" id="div_my_tickets" style="display: none;">
+              <div class="row m-0 p-0">
+                <div class="col-xl-6 m-0 p-1">
+                  <div class="div_ticket_list">
+                    <div class="div_ticket_item p-3 pl-4 pr-4 active">
+                      <div class="row m-0 p-0">
+                        <div class="col-9 m-0 p-0">
+                          <div class="list_item_detail">
+                            <span class="first_line font_white_color">Ticket 04</span><br/>
+                            <span class="second_line">HDMI Settings</span>
+                          </div>
+                        </div>
+                        <div class="col-3 m-0 p-0 text-right">
+                          <div class="list_item_status mt-2">
+                            <span>OPEN</span>
+                            <div class="ticket_list_green_circle ml-2">1</div>
+                          </div>    
+                        </div>
+                      </div>                        
+                    </div>
+                    <div class="div_ticket_item p-3 pl-4 pr-4">
+                      <div class="row m-0 p-0">
+                        <div class="col-9 m-0 p-0">
+                          <div class="list_item_detail">
+                            <span class="first_line font_white_color">Ticket 03</span><br/>
+                            <span class="second_line">HDMI Settings</span>
+                          </div>
+                        </div>
+                        <div class="col-3 m-0 p-0 text-right">
+                          <div class="list_item_status mt-2">
+                            SOLVED
+                          </div>    
+                        </div>
+                      </div>    
+                    </div>
+                    <div class="div_ticket_item p-3 pl-4 pr-4">
+                      <div class="row m-0 p-0">
+                        <div class="col-9 m-0 p-0">
+                          <div class="list_item_detail">
+                            <span class="first_line font_white_color">Ticket 02</span><br/>
+                            <span class="second_line">HDMI Settings</span>
+                          </div>
+                        </div>
+                        <div class="col-3 m-0 p-0 text-right">
+                          <div class="list_item_status mt-2">
+                            SOLVED
+                          </div>    
+                        </div>
+                      </div>    
+                    </div>
+                    <div class="div_ticket_item p-3 pl-4 pr-4">
+                      <div class="row m-0 p-0">
+                        <div class="col-9 m-0 p-0">
+                          <div class="list_item_detail">
+                            <span class="first_line font_white_color">Ticket 01</span><br/>
+                            <span class="second_line">HDMI Settings</span>
+                          </div>
+                        </div>
+                        <div class="col-3 m-0 p-0 text-right">
+                          <div class="list_item_status mt-2">
+                            SOLVED
+                          </div>    
+                        </div>
+                      </div>    
+                    </div>
+                  </div>
+                </div>
+                <div class="col-xl-6 m-0 p-1">
+                  <div class="div_chat_container">
+                    <div class="div_chat_box">
+                      <div class="chat_content p-2">
+
+                        <div class="div_received_chat_row p-2">
+                          <div class="div_received_chat_box tri-right left-top">
+                            <span>Did you try to follow the manual first?</span>
+                          </div>
+                        </div>
+
+                        <div class="div_sent_chat_row p-2">
+                          <div class="div_sent_chat_box tri-right right-top">
+                            <span>No I didn't. <br> That's a good idea actually. </span>
+                          </div>
+                        </div>
+                        
+                        <div class="div_received_chat_row p-2">
+                          <div class="div_received_chat_box tri-right left-top">
+                            <span>Yeah, Please read the instruction at page 13. <br> Let me know. </span>
+                          </div>
+                        </div>
+
+                        <div class="div_sent_chat_row p-2">
+                          <div class="div_sent_chat_box tri-right right-top">
+                            <span>Ok. </span>
+                          </div>
+                        </div>
+
+                        <div class="div_received_chat_row p-2">
+                          <div class="div_received_chat_box tri-right left-top">
+                            <span>Did you try to follow the manual first?</span>
+                          </div>
+                        </div>
+
+                        <div class="div_sent_chat_row p-2">
+                          <div class="div_sent_chat_box tri-right right-top">
+                            <span>No I didn't. <br> That's a good idea actually. </span>
+                          </div>
+                        </div>
+                        
+                        <div class="div_received_chat_row p-2">
+                          <div class="div_received_chat_box tri-right left-top">
+                            <span>Yeah, Please read the instruction at page 13. <br> Let me know. </span>
+                          </div>
+                        </div>
+
+                        <div class="div_sent_chat_row p-2">
+                          <div class="div_sent_chat_box tri-right right-top">
+                            <span>Ok. </span>
+                          </div>
+                        </div>
+
+                      </div>                      
+                    </div>  
+
+                    <div class="div_chat_text p-2">
+                      <div class="btn_blank">
+                        <input style="width: 100%;" placeholder="Type a message..." />
+                      </div>
+                    </div>                 
+                  </div>
+                  <div class="row m-0 p-0 pt-2">
+                    <div class="col-6 m-0 p-0"></div>
+                    <div class="col-6 m-0 p-0">
+                        <div class="btn_common active">
+                            SEND
+                        </div>
+                    </div>
+                </div>    
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+
+<script>
+  $( document ).ready(function() { 
+    $(".btn_chat_tab").on("click", function(e){
+      var target = $(this).attr("target");
+      $(".btn_chat_tab").removeClass("active");
+      $(this).addClass("active");
+      $("#div_chat_contents .div_tab_contents").hide();
+      $("#div_chat_contents #"+target).show();
+    });
+
+    $("#btn_menu").on("click", function(){
+	if($("#cm_side_bar").css("display") == 'block'){
+	 $("#cm_side_bar").addClass("d-none");}else{
+	 $("#cm_side_bar").removeClass("d-none");
+	 }
+    });
+  });
+  if("" == "false"){
+    $('.menu_disable').click(function(e){
+    e.preventDefault()
+	document.cookie = "Page="+this.id;
+	console.log(getCookie("Page"));
+	var modal = document.getElementById("myModal");
+	var span = document.getElementsByClassName("close")[0];
+	document.getElementsByClassName("modal-content")[0].style.width = '25%';
+	$(".popup_msg").removeClass("d-none");
+	modal.style.display = "block";
+	
+	  span.onclick = function() {
+      modal.style.display = "none";
+      }
+	  
+	  
+      window.onclick = function(event) {
+        if (event.target == modal) {
+          modal.style.display = "none";
+        }
+      }
+	
+    })
+  }
+  
+  function getCookie(name) {
+    var cname = name + "=";
+    var decodedCookie = decodeURIComponent(document.cookie);
+    var ca = decodedCookie.split(';');
+    for(var i = 0; i < ca.length; i++){
+        var c = ca[i];
+        while(c.charAt(0) == ' '){
+            c = c.substring(1);
+        }
+        if(c.indexOf(cname) == 0){
+            return c.substring(cname.length, c.length);
+        }
+    }
+    return "";
+}
+  
+  </script>
+
+</html>

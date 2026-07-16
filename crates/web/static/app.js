@@ -329,7 +329,8 @@
   function textField(id, value, opts = {}) {
     const v = opts.batch ? "" : value ?? "";
     const placeholder = opts.batch ? "— leave unchanged —" : "";
-    return field(labelFor(id), `<input id="f-${id}" type="text" value="${escapeAttr(v)}" placeholder="${escapeAttr(placeholder)}">`);
+    const readOnly = opts.readOnly && !opts.batch ? "readonly" : "";
+    return field(labelFor(id), `<input id="f-${id}" type="text" value="${escapeAttr(v)}" placeholder="${escapeAttr(placeholder)}" ${readOnly}>`);
   }
   function numberField(id, value, opts = {}) {
     const v = opts.batch ? "" : value ?? 0;
@@ -392,8 +393,8 @@
           ${textField("fallback_ip_address", s.fallback_ip_address, opts)}
           ${textField("fallback_subnet_mask", s.fallback_subnet_mask, opts)}
           ${textField("birddog_name", s.birddog_name, opts)}
-          ${checkboxField("wifi_enabled", s.wifi_enabled, opts)}
-          ${selectField("ndi_transmit_method", s.ndi_transmit_method, ["TCP", "UDP", "R-UDP"], opts)}
+          ${selectField("ndi_transmit_method", s.ndi_transmit_method, ["TCP", "UDP", "Multicast", "RUDP"], opts)}
+          ${selectField("ndi_receive_method", s.ndi_receive_method, ["TCP", "UDP", "Multicast", "RUDP"], opts)}
           ${textField("multicast_net_prefix", s.multicast_net_prefix, opts)}
           ${textField("multicast_net_mask", s.multicast_net_mask, opts)}
           ${numberField("multicast_ttl", s.multicast_ttl, opts)}
@@ -414,8 +415,8 @@
         fallback_ip_address: val("fallback_ip_address"),
         fallback_subnet_mask: val("fallback_subnet_mask"),
         birddog_name: val("birddog_name"),
-        wifi_enabled: checked("wifi_enabled"),
         ndi_transmit_method: val("ndi_transmit_method"),
+        ndi_receive_method: val("ndi_receive_method"),
         multicast_net_prefix: val("multicast_net_prefix"),
         multicast_net_mask: val("multicast_net_mask"),
         multicast_ttl: Number(val("multicast_ttl")),
@@ -432,8 +433,8 @@
     setIfPresent(patch, "fallback_ip_address", val("fallback_ip_address"));
     setIfPresent(patch, "fallback_subnet_mask", val("fallback_subnet_mask"));
     setIfPresent(patch, "birddog_name", val("birddog_name"));
-    setIfPresentBool(patch, "wifi_enabled", val("wifi_enabled"));
     setIfPresent(patch, "ndi_transmit_method", val("ndi_transmit_method"));
+    setIfPresent(patch, "ndi_receive_method", val("ndi_receive_method"));
     setIfPresent(patch, "multicast_net_prefix", val("multicast_net_prefix"));
     setIfPresent(patch, "multicast_net_mask", val("multicast_net_mask"));
     setIfPresentNumber(patch, "multicast_ttl", val("multicast_ttl"));
@@ -450,9 +451,11 @@
         <h3>Decode source${opts.batch ? " (batch)" : ""}</h3>
         <div class="field-grid">
           ${textField("selected_source", s.selected_source, opts)}
-          ${textField("available_sources", (s.available_sources || []).join(", "), opts)}
           ${textField("failover_source", s.failover_source, opts)}
-          ${textField("screensaver_mode", s.screensaver_mode, opts)}
+          ${selectField("screensaver_mode", s.screensaver_mode, ["CaptureSS", "BlackSS", "BirdDogSS"], opts)}
+          ${selectField("color_space", s.color_space, ["YUV", "RGB"], opts)}
+          ${checkboxField("ndi_audio_enabled", s.ndi_audio_enabled, opts)}
+          ${selectField("tally_mode", s.tally_mode, ["TallyOn", "TallyOff", "VideoMode"], opts)}
         </div>
       </div>
       ${saveRow()}`;
@@ -461,16 +464,21 @@
     if (!opts.batch) {
       return {
         selected_source: val("selected_source") || null,
-        available_sources: csvToList(val("available_sources")),
+        available_sources: [],
         failover_source: val("failover_source") || null,
         screensaver_mode: val("screensaver_mode"),
+        color_space: val("color_space"),
+        ndi_audio_enabled: checked("ndi_audio_enabled"),
+        tally_mode: val("tally_mode"),
       };
     }
     const patch = {};
     setIfPresent(patch, "selected_source", val("selected_source"));
-    setIfPresentList(patch, "available_sources", val("available_sources"));
     setIfPresent(patch, "failover_source", val("failover_source"));
     setIfPresent(patch, "screensaver_mode", val("screensaver_mode"));
+    setIfPresent(patch, "color_space", val("color_space"));
+    setIfPresentBool(patch, "ndi_audio_enabled", val("ndi_audio_enabled"));
+    setIfPresent(patch, "tally_mode", val("tally_mode"));
     return patch;
   }
 
@@ -481,10 +489,9 @@
       <div class="settings-card">
         <h3>System${opts.batch ? " (batch)" : ""}</h3>
         <div class="field-grid">
-          ${textField("firmware_version", s.firmware_version, opts)}
+          ${textField("firmware_version", s.firmware_version, { ...opts, readOnly: true })}
           ${textField("remote_ip_list", (s.remote_ip_list || []).join(", "), opts)}
           ${textField("ndi_group_list", (s.ndi_group_list || []).join(", "), opts)}
-          ${selectField("ui_mode", s.ui_mode, ["Dark", "Light"], opts)}
         </div>
       </div>
       ${saveRow()}`;
@@ -495,14 +502,11 @@
         firmware_version: val("firmware_version"),
         remote_ip_list: csvToList(val("remote_ip_list")),
         ndi_group_list: csvToList(val("ndi_group_list")),
-        ui_mode: val("ui_mode"),
       };
     }
     const patch = {};
-    setIfPresent(patch, "firmware_version", val("firmware_version"));
     setIfPresentList(patch, "remote_ip_list", val("remote_ip_list"));
     setIfPresentList(patch, "ndi_group_list", val("ndi_group_list"));
-    setIfPresent(patch, "ui_mode", val("ui_mode"));
     return patch;
   }
 

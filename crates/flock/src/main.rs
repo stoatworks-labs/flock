@@ -30,9 +30,19 @@ async fn main() -> anyhow::Result<()> {
         }
     }
 
+    let provider: Arc<dyn flock_core::DeviceClientProvider> = match config.provider.as_str() {
+        "http" => {
+            tracing::warn!(
+                "using the real HTTP device provider - see docs/architecture.md for what's confirmed/unconfirmed"
+            );
+            Arc::new(flock_device_http::HttpClientProvider::new())
+        }
+        _ => Arc::new(MockClientProvider::new()),
+    };
+
     let state = AppState {
         registry: Arc::new(registry),
-        provider: Arc::new(MockClientProvider::new()),
+        provider,
         discovery: Arc::new(Discovery::new()?),
     };
 

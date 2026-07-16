@@ -47,8 +47,8 @@ impl MockDevice {
                 fallback_ip_address: "192.168.100.100".to_string(),
                 fallback_subnet_mask: "255.255.255.0".to_string(),
                 birddog_name: stream_name.clone(),
-                wifi_enabled: false,
                 ndi_transmit_method: NdiTransmitMethod::Tcp,
+                ndi_receive_method: NdiTransmitMethod::Tcp,
                 multicast_net_prefix: "239.255.0.0".to_string(),
                 multicast_net_mask: "255.255.0.0".to_string(),
                 multicast_ttl: 1,
@@ -59,13 +59,15 @@ impl MockDevice {
                 selected_source: None,
                 available_sources: vec![],
                 failover_source: None,
-                screensaver_mode: "Black frame".to_string(),
+                screensaver_mode: "BlackSS".to_string(),
+                color_space: "YUV".to_string(),
+                ndi_audio_enabled: false,
+                tally_mode: "TallyOff".to_string(),
             },
             system: SystemSettings {
                 firmware_version: "1.0.2".to_string(),
                 remote_ip_list: vec![],
                 ndi_group_list: vec![],
-                ui_mode: "Dark".to_string(),
             },
         };
         Self {

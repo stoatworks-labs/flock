@@ -3,10 +3,11 @@
 > **AI-assisted project.** This codebase was created with
 > [Claude](https://claude.com/claude-code) (Anthropic), directed and
 > reviewed by a human author. Treat this as an early-stage hobby project:
-> Phase 1 has been built and exercised end-to-end against a simulated
-> BirdDog Play device (see [Status](#status) below), but **has not yet been
-> run against real BirdDog hardware**. Review before relying on it for
-> anything live.
+> it's been exercised end-to-end against both a simulated BirdDog Play
+> device and a real one (see [Status](#status) below), but real-device
+> *writes* were only exercised via offline tests against captured HTML, not
+> live against the physical unit — read that section before changing
+> settings on hardware you care about.
 
 A single web UI for managing any number of [BirdDog Play](https://birddog.tv/play-overview/)
 NDI/SRT decoders — a fleet control panel for devices that otherwise only
@@ -31,17 +32,17 @@ settings on the right:
 
 ![flock Status tab showing a device's dashboard summary](docs/screenshots/status.png)
 
-**Network** tab — Ethernet/Wi-Fi, NDI transmit method, multicast, and
-discovery server settings, all in one flat panel:
+**Network** tab — IP config, NDI transmit/receive preferred method,
+multicast, and discovery server settings, all in one flat panel:
 
 ![flock Network tab with DHCP/static, NDI transmit method, and multicast fields](docs/screenshots/network.png)
 
-**Decode** tab — NDI source selection and failover (Play is decode-only, so
-there is no Encode tab):
+**Decode** tab — source selection, failover, screensaver, colour space, NDI
+audio, and tally (Play is decode-only, so there is no Encode tab):
 
 ![flock Decode tab showing NDI source and failover fields](docs/screenshots/decode.png)
 
-**System** tab — firmware, Access Manager lists, and UI mode:
+**System** tab — firmware version and Access Manager lists:
 
 ![flock System tab showing firmware version and Access Manager fields](docs/screenshots/system.png)
 
@@ -56,8 +57,9 @@ overwriting the whole group with a shared template:
 
 - **Device registry**: any number of BirdDog Play devices, each taggable
   into multiple groups (a device isn't locked to one group).
-- **Discovery**: mDNS scan for candidate devices on the LAN, plus manual
-  add-by-host as a fallback that always works.
+- **Discovery**: an active LAN subnet probe (the actual way a real Play is
+  found — it doesn't advertise itself over mDNS at all) plus an mDNS scan
+  for other NDI gear, and manual add-by-host as a fallback that always works.
 - **Full BirdUI parity for Play** (decode-only, so no Encode tab): Status
   (Dashboard), Network, Decode (NDI source + failover), and System
   (password/firmware/Access Manager/UI mode) — every field visible directly
@@ -72,26 +74,32 @@ overwriting the whole group with a shared template:
 
 ## Status
 
-**Phase 1 (current): mock-first, built and passing locally.** A simulated
-BirdDog Play (`crates/device-mock`) stands in for real hardware so the whole
-app — registry, groups, all four settings tabs, batch edit, discovery,
-Docker — can be built and demoed before any physical unit is on the bench.
+**Phase 2 (current): validated against both a simulated and a real BirdDog
+PLAY.** `crates/device-mock` stands in for hardware for quick iteration/demo;
+`crates/device-http` is a real client confirmed against an actual PLAY unit
+(firmware 1.0.18) — see [docs/architecture.md](docs/architecture.md)'s
+"Confirmed against real hardware" section for exactly what that means and
+its known limitations.
 
 Working:
-- Cargo workspace (`core`/`discovery`/`device-mock`/`web`/`flock`),
-  `cargo build`/`clippy`/`test` all clean
+- Cargo workspace (`core`/`discovery`/`device-mock`/`device-http`/`web`/
+  `flock`), `cargo build`/`clippy`/`test` all clean, including offline unit
+  tests for the real HTML scraper against fixtures captured from actual
+  hardware
 - Three-pane UI: device list + tag-derived groups on the left, preview +
   tabbed settings in the center, discovery/add/remove/local settings on the
   right
 - Every settings tab round-trips against the mock device, single-device or
-  batched across a whole group
-- mDNS discovery scan + manual add/edit/remove
-- `docker-compose.yml` with host networking for mDNS
+  batched across a whole group; `status`/`network_settings`/
+  `decode_settings` reads verified live against real hardware
+- Subnet-probe + mDNS discovery scan + manual add/edit/remove
+- `docker-compose.yml` with host networking (needed for the subnet probe and
+  mDNS alike)
 
 Not yet done:
-- Never run against a real BirdDog Play — the mDNS service type it actually
-  advertises and the real REST field names are unconfirmed (see
-  [docs/architecture.md](docs/architecture.md))
+- Real-device **writes** haven't been exercised live, only via offline
+  fixture tests — see docs/architecture.md/roadmap.md before saving settings
+  to hardware you care about
 - Live video preview is a placeholder (needs an actual NDI/SRT frame grab)
 - No auth on flock itself — meant for a trusted LAN, same trust model as the
   device's own BirdUI
@@ -111,31 +119,35 @@ seeds three demo devices so there's something to look at immediately.
 docker compose up --build
 ```
 
-Uses `network_mode: host` so mDNS discovery (UDP multicast) works from
-inside the container — see [docs/architecture.md](docs/architecture.md#docker--mdns)
-for the tradeoff and the bridge-networking alternative if you'd rather keep
+Uses `network_mode: host` so both discovery mechanisms (the subnet probe and
+mDNS) can reach the LAN from inside the container — see
+[docs/architecture.md](docs/architecture.md#docker--networking) for the
+tradeoff and the bridge-networking alternative if you'd rather keep
 container isolation and rely on manual add only.
 
 ## Architecture
 
 ```mermaid
 flowchart LR
-    P1["BirdDog Play"] <-- REST / mDNS --> DC
-    P2["BirdDog Play"] <-- REST / mDNS --> DC
-    DC["DeviceClient trait<br/>(real-hardware seam)"] --> REG["Registry + tag groups<br/>(core)"]
+    P1["BirdDog Play<br/>(real hardware)"] <-- HTTP/HTML --> DCH["device-http"]
+    P2["device-mock<br/>(simulated Play)"]
+    DCH --> DC["DeviceClient trait<br/>(real-hardware seam)"]
+    P2 --> DC
+    DC --> REG["Registry + tag groups<br/>(core)"]
     REG --> WEB["web (axum)"]
     WEB -- WebSocket --> UI["Browser fleet UI<br/>tabbed settings + batch edit"]
 ```
 
 See [docs/architecture.md](docs/architecture.md) for the crate layout, the
 `DeviceClient` trait that isolates real-hardware integration to one seam,
-and why several BirdDog-specific details (mDNS service type, REST field
-names) are marked as unconfirmed pending real hardware.
+and the full list of what's confirmed against real hardware vs. still
+unconfirmed/unimplemented.
 
 ## Roadmap / TODO
 
 Full plan in [docs/roadmap.md](docs/roadmap.md). Next up:
 
-- [ ] **Validate against a real BirdDog Play** — confirm the advertised mDNS service type and the real REST field names (both currently unconfirmed).
+- [ ] **Exercise a real write end-to-end** against physical hardware (with the operator watching) — Phase 2 deliberately verified only reads live.
+- [ ] **Subscribe to the real device's live status WebSocket** instead of polling `/dashboard`.
 - [ ] **Real live video preview** — an actual NDI/SRT frame grab (currently a placeholder).
 - [ ] **Optional auth on flock itself** — currently trusted-LAN only, matching BirdUI's own model.
