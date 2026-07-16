@@ -54,18 +54,41 @@ with.
   `crates/core/src/settings.rs`'s doc comment): e.g. `net_method`/`net_address`/
   `net_avahi` for network, `Txpm`/`Rxpm` for transmit/receive preferred
   method (four options: `TCP`/`UDP`/`Multicast`/`RUDP` — no hyphen, unlike
-  BirdUI's own prose which calls it "R-UDP"), `dec0_source_name`/
-  `dec0_fo_source_name` for decode source/failover (plain uppercase-styled
-  text inputs, not a discovered-source picker), `decode_ColorSpace`
+  BirdUI's own prose which calls it "R-UDP"), `decode_ColorSpace`
   (`YUV`/`RGB`), `decode_NDIAudio` (`NDIAudioEn`/`NDIAudioDis`),
   `decode_ScreenSaverMode` (`CaptureSS`/`BlackSS`/`BirdDogSS`),
   `decode_TallyMode` (`TallyOn`/`TallyOff`/`VideoMode`). `flock-device-http`
   maps between these and flock's own settings shapes.
+- **Setting the decode source is not just a text field — verified live,
+  including a full write.** The visible "Decode Source Name" text input
+  (`dec0_source_name`) is itself hidden (`display:none`) in the real UI and
+  posting to it alone silently no-ops. The actual mechanism, reverse
+  engineered from the page's own JS and confirmed by driving it end-to-end
+  through flock against real hardware:
+  1. The browser's source-picker dropdown is populated not from BirdUI's
+     HTML at all, but from a **separate JSON API the device runs on port
+     8080**: `GET http://<device-ip>:8080/List` returns
+     `{"source name": "ip:port", ...}` for every NDI source it currently
+     sees. `flock-device-http::fetch_source_list` calls this directly and
+     uses it both to populate `available_sources` and to resolve a chosen
+     name to its ip for the write below.
+  2. Applying a source requires POSTing `dec0_source_name`, `dec0_source_ip`
+     (the resolved `ip:port`), **and** `dec0_change_source_button=dec0_change_source`
+     together to `/videoset`. That button field is not cosmetic — omitting
+     it (confirmed by testing) causes the server to silently ignore the
+     source fields entirely, even though other fields in the same POST
+     (colour space, tally, screensaver) do take effect. `set_decode_settings`
+     always includes it.
+  3. `screensaver_mode`'s true current value isn't marked via the normal
+     `selected` attribute on its dropdown - BirdUI's own JS reads it from a
+     separate hidden `<option id="dec1_sel" value="...">` marker instead,
+     confirmed by watching that marker change from a Go-template nil-render
+     artifact to the real value after a save. `scrape_attr_by_id` reads
+     this directly rather than looking for `selected`.
 - **Known limitations of the real client**, all documented in code:
-  - `screensaver_mode`/`tally_mode` read back empty on an unconfigured
-    device — the real firmware doesn't mark a `selected` option for those
-    two dropdowns in server-rendered HTML, so there's nothing to scrape
-    until a value has actually been saved once.
+  - `tally_mode` still reads back empty on a genuinely never-configured
+    device (unlike screensaver_mode, no hidden-marker fallback is confirmed
+    for it) — cosmetic, not functional.
   - Access Manager's `remote_ip_list`/`ndi_group_list` are **write-only** —
     real BirdUI only accepts them as an uploaded quoted-CSV text file
     (matching the BirdUI User Guide's own example format) and never renders
@@ -79,9 +102,17 @@ with.
     not wired up yet. `status()` currently polls `/dashboard` and scrapes it
     per call; subscribing to this socket instead would be a nice follow-up
     for cheaper, snappier live status.
-  - The real device took 5–15 seconds to respond to some requests in
-    testing (embedded hardware, not a bug) — `flock-device-http` uses a
-    20-second reqwest timeout accordingly.
+  - The real device took 5–20+ seconds to respond to some requests in
+    testing, including intermittent cold-start timeouts on the very first
+    request after a period of inactivity (embedded hardware, not a flock
+    bug) — `flock-device-http` uses a 20-second reqwest timeout
+    accordingly, but a retry-on-first-failure would smooth this over.
+  - `set_decode_settings` always re-submits `dec0_change_source_button`,
+    even when the operator only changed an unrelated field like tally mode —
+    the real UI itself has no way to change colour-space/audio/screensaver/
+    tally without that same form, so this mirrors real usage, but means
+    every decode save re-applies the source (a harmless no-op if it's
+    unchanged, confirmed live, but worth knowing).
 
 ## Discovery: why it's a subnet probe, not mDNS
 

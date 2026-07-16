@@ -421,6 +421,7 @@ dependencies = [
  "flock-core",
  "reqwest",
  "scraper",
+ "serde_json",
  "tokio",
  "tracing",
 ]

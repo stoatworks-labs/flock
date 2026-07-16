@@ -30,9 +30,18 @@ const DEFAULT_PASSWORD: &str = "birddog";
 /// page contains this, the session is missing/expired and we got the login
 /// page back instead of the content we asked for.
 const LOGIN_MARKER: &str = "auth_form";
+/// The browser's own decode-source picker doesn't come from BirdUI's HTML
+/// at all - it's populated client-side via `$.getJSON` against a *separate*
+/// JSON API the device runs on this port, returning `{"source name": "ip:port"}`
+/// for every NDI source it currently sees (confirmed live: `GET /List` on
+/// this port, not the web UI's port 80).
+const SOURCE_LIST_PORT: u16 = 8080;
+/// Placeholder text BirdUI renders for an unset source field.
+const NONE_SOURCE: &str = "None";
 
 pub struct HttpDeviceClient {
     base_url: String,
+    source_list_url: String,
     password: String,
     http: reqwest::Client,
     logged_in: AtomicBool,
@@ -49,6 +58,7 @@ impl HttpDeviceClient {
             .build()?;
         Ok(Self {
             base_url: format!("http://{}", device.host),
+            source_list_url: format!("http://{}:{SOURCE_LIST_PORT}/List", device.host),
             password: device
                 .credentials
                 .password
@@ -57,6 +67,20 @@ impl HttpDeviceClient {
             http,
             logged_in: AtomicBool::new(false),
         })
+    }
+
+    /// `{source name: "ip:port"}` for every NDI source the device currently
+    /// sees, straight from its own discovery - not scraped from BirdUI HTML.
+    async fn fetch_source_list(&self) -> anyhow::Result<HashMap<String, String>> {
+        let text = self
+            .http
+            .get(&self.source_list_url)
+            .send()
+            .await?
+            .text()
+            .await?;
+        let map: HashMap<String, String> = serde_json::from_str(&text)?;
+        Ok(map)
     }
 
     async fn login(&self) -> anyhow::Result<()> {
@@ -160,6 +184,24 @@ fn none_if_placeholder(s: String) -> Option<String> {
         None
     } else {
         Some(s)
+    }
+}
+
+/// Resolves a desired source name to the (name, ip) pair BirdUI's own
+/// "Apply Source" flow submits, using the device's live source list. Falls
+/// back to the literal name with an empty ip if the device doesn't
+/// currently see that source (e.g. it just went offline) rather than
+/// silently dropping the request to clear the source.
+fn resolve_source(wanted: &Option<String>, sources: &HashMap<String, String>) -> (String, String) {
+    match wanted {
+        None => (NONE_SOURCE.to_string(), NONE_SOURCE.to_string()),
+        Some(name) => {
+            let ip = sources
+                .get(name)
+                .cloned()
+                .unwrap_or_else(|| NONE_SOURCE.to_string());
+            (name.clone(), ip)
+        }
     }
 }
 
@@ -273,16 +315,16 @@ impl DeviceClient for HttpDeviceClient {
         let html = self.get_page("/videoset").await?;
         let fields = form::scrape_form_fields(&html);
         let get = |k: &str| fields.get(k).cloned().unwrap_or_default();
+        let sources = self.fetch_source_list().await.unwrap_or_default();
         Ok(DecodeSettings {
             selected_source: none_if_placeholder(get("dec0_source_name")),
-            // Real device has no discovered-source picker; always empty.
-            available_sources: vec![],
+            available_sources: sources.into_keys().filter(|k| k != NONE_SOURCE).collect(),
             failover_source: none_if_placeholder(get("dec0_fo_source_name")),
-            // The real firmware doesn't mark a `selected` option for these
-            // two dropdowns in server-rendered HTML, so an unconfigured
-            // device may read back empty here even though it has a default
-            // behavior - see docs/architecture.md.
-            screensaver_mode: get("decode_ScreenSaverMode"),
+            // BirdUI's own JS reads this same hidden marker (not the
+            // `selected` attribute) for the page's current value - see
+            // docs/architecture.md.
+            screensaver_mode: form::scrape_attr_by_id(&html, "dec1_sel", "value")
+                .unwrap_or_default(),
             color_space: {
                 let v = get("decode_ColorSpace");
                 if v.is_empty() {
@@ -299,14 +341,25 @@ impl DeviceClient for HttpDeviceClient {
     async fn set_decode_settings(&self, settings: DecodeSettings) -> anyhow::Result<()> {
         let html = self.get_page("/videoset").await?;
         let mut fields = form::scrape_form_fields(&html);
+
+        // The real UI's "Apply Source" flow: look the chosen name up in the
+        // device's own live source list to get its "ip:port", set both the
+        // name and ip fields, and include the specific button field the
+        // server gates source-change handling behind - confirmed live that
+        // omitting this button field silently no-ops the source change even
+        // though the other decode fields in the same POST do take effect.
+        let sources = self.fetch_source_list().await.unwrap_or_default();
+        let (source_name, source_ip) = resolve_source(&settings.selected_source, &sources);
+        let (fo_name, fo_ip) = resolve_source(&settings.failover_source, &sources);
+        fields.insert("dec0_source_name".into(), source_name);
+        fields.insert("dec0_source_ip".into(), source_ip);
+        fields.insert("dec0_fo_source_name".into(), fo_name);
+        fields.insert("dec0_fo_source_ip".into(), fo_ip);
         fields.insert(
-            "dec0_source_name".into(),
-            settings.selected_source.unwrap_or_else(|| "None".into()),
+            "dec0_change_source_button".into(),
+            "dec0_change_source".into(),
         );
-        fields.insert(
-            "dec0_fo_source_name".into(),
-            settings.failover_source.unwrap_or_else(|| "None".into()),
-        );
+
         fields.insert("decode_ScreenSaverMode".into(), settings.screensaver_mode);
         fields.insert("decode_ColorSpace".into(), settings.color_space);
         fields.insert(

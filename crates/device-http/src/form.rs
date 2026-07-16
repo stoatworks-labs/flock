@@ -76,6 +76,22 @@ pub fn scrape_text_by_id(html: &str, ids: &[&str]) -> HashMap<String, String> {
     out
 }
 
+/// Reads an attribute off the single element with the given id. Used for
+/// BirdUI's screensaver-mode marker: rather than marking `selected` on the
+/// real `<option>` list, the real template renders a separate hidden
+/// `<option id="dec1_sel" value="...">` carrying the true current value -
+/// confirmed by observing it update (from a Go-template nil-render artifact
+/// to an actual value) after a real settings save.
+pub fn scrape_attr_by_id(html: &str, id: &str, attr: &str) -> Option<String> {
+    let doc = Html::parse_document(html);
+    let selector = Selector::parse(&format!("#{id}")).ok()?;
+    doc.select(&selector)
+        .next()?
+        .value()
+        .attr(attr)
+        .map(str::to_string)
+}
+
 pub fn to_multipart(fields: HashMap<String, String>) -> reqwest::multipart::Form {
     let mut form = reqwest::multipart::Form::new();
     for (key, value) in fields {
@@ -90,6 +106,21 @@ mod tests {
 
     const NETWORK_HTML: &str = include_str!("../tests/fixtures/network.html");
     const DASHBOARD_HTML: &str = include_str!("../tests/fixtures/dashboard.html");
+    const VIDEOSET_AFTER_APPLY_HTML: &str =
+        include_str!("../tests/fixtures/videoset_after_apply.html");
+
+    #[test]
+    fn scrapes_source_name_and_screensaver_marker_after_a_real_apply() {
+        let fields = scrape_form_fields(VIDEOSET_AFTER_APPLY_HTML);
+        assert_eq!(
+            fields.get("dec0_source_name").map(String::as_str),
+            Some("MAC (Mitti NDI #1)")
+        );
+        assert_eq!(
+            scrape_attr_by_id(VIDEOSET_AFTER_APPLY_HTML, "dec1_sel", "value").as_deref(),
+            Some("BlackSS")
+        );
+    }
 
     #[test]
     fn scrapes_checked_radio_and_text_input() {

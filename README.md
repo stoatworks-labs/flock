@@ -4,10 +4,10 @@
 > [Claude](https://claude.com/claude-code) (Anthropic), directed and
 > reviewed by a human author. Treat this as an early-stage hobby project:
 > it's been exercised end-to-end against both a simulated BirdDog Play
-> device and a real one (see [Status](#status) below), but real-device
-> *writes* were only exercised via offline tests against captured HTML, not
-> live against the physical unit — read that section before changing
-> settings on hardware you care about.
+> device and a real one — including live reads and a real settings write
+> (routing an actual NDI source to a physical unit's HDMI output) — see
+> [Status](#status) below for exactly what that covers and what's still
+> unverified.
 
 A single web UI for managing any number of [BirdDog Play](https://birddog.tv/play-overview/)
 NDI/SRT decoders — a fleet control panel for devices that otherwise only
@@ -90,19 +90,25 @@ Working:
   tabbed settings in the center, discovery/add/remove/local settings on the
   right
 - Every settings tab round-trips against the mock device, single-device or
-  batched across a whole group; `status`/`network_settings`/
-  `decode_settings` reads verified live against real hardware
+  batched across a whole group
+- Reads (`status`/`network_settings`/`decode_settings`) **and** a real
+  settings write both verified live against physical hardware — routed an
+  actual NDI source to a real Play's HDMI output through flock's own API,
+  read the change back, switched it twice more. Along the way, found (by
+  testing, not guessing) that the decode-source picker needed a separate
+  JSON API on port 8080 and a specific button field the server silently
+  ignores requests without — see [docs/architecture.md](docs/architecture.md)
 - Subnet-probe + mDNS discovery scan + manual add/edit/remove
 - `docker-compose.yml` with host networking (needed for the subnet probe and
   mDNS alike)
 
 Not yet done:
-- Real-device **writes** haven't been exercised live, only via offline
-  fixture tests — see docs/architecture.md/roadmap.md before saving settings
-  to hardware you care about
 - Live video preview is a placeholder (needs an actual NDI/SRT frame grab)
 - No auth on flock itself — meant for a trusted LAN, same trust model as the
   device's own BirdUI
+- No automatic retry for the real device's intermittent cold-start timeout
+  (first request after idle sometimes times out, always succeeded on
+  immediate retry in testing)
 
 ## Quick start
 
@@ -147,7 +153,7 @@ unconfirmed/unimplemented.
 
 Full plan in [docs/roadmap.md](docs/roadmap.md). Next up:
 
-- [ ] **Exercise a real write end-to-end** against physical hardware (with the operator watching) — Phase 2 deliberately verified only reads live.
+- [ ] **Automatic retry for the real device's cold-start timeout** — first request after idle intermittently times out, always succeeded on immediate retry in testing.
 - [ ] **Subscribe to the real device's live status WebSocket** instead of polling `/dashboard`.
 - [ ] **Real live video preview** — an actual NDI/SRT frame grab (currently a placeholder).
 - [ ] **Optional auth on flock itself** — currently trusted-LAN only, matching BirdUI's own model.
