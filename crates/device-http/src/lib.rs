@@ -52,9 +52,10 @@ impl HttpDeviceClient {
         let http = reqwest::Client::builder()
             .cookie_store(true)
             // The real device has been observed taking several seconds to
-            // respond even to simple GETs - a short timeout here would
+            // respond even to simple GETs, and /login specifically has been
+            // seen taking 15-20s on its own - a short timeout here would
             // misreport a slow-but-healthy device as unreachable.
-            .timeout(Duration::from_secs(20))
+            .timeout(Duration::from_secs(30))
             .build()?;
         Ok(Self {
             base_url: format!("http://{}", device.host),
@@ -84,13 +85,30 @@ impl HttpDeviceClient {
     }
 
     async fn login(&self) -> anyhow::Result<()> {
-        self.http
-            .post(format!("{}/login", self.base_url))
-            .form(&[("auth_password", self.password.as_str())])
-            .send()
-            .await?;
-        self.logged_in.store(true, Ordering::Relaxed);
-        Ok(())
+        // /login has been observed taking 15-20s on its own, occasionally
+        // enough to trip even a generous client timeout on the first hit
+        // after the device has been idle - one retry smooths this over
+        // instead of surfacing a transient timeout to the UI.
+        let mut last_err = None;
+        for attempt in 0..2 {
+            match self
+                .http
+                .post(format!("{}/login", self.base_url))
+                .form(&[("auth_password", self.password.as_str())])
+                .send()
+                .await
+            {
+                Ok(_) => {
+                    self.logged_in.store(true, Ordering::Relaxed);
+                    return Ok(());
+                }
+                Err(e) => {
+                    tracing::warn!(attempt, "login request failed: {e:#}");
+                    last_err = Some(e);
+                }
+            }
+        }
+        Err(last_err.expect("loop always sets this on failure").into())
     }
 
     async fn get_page(&self, path: &str) -> anyhow::Result<String> {

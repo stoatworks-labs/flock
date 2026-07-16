@@ -114,9 +114,6 @@ Not yet done:
 - Live video preview is a placeholder (needs an actual NDI/SRT frame grab)
 - No auth on flock itself — meant for a trusted LAN, same trust model as the
   device's own BirdUI
-- No automatic retry for the real device's intermittent cold-start timeout
-  (first request after idle sometimes times out, always succeeded on
-  immediate retry in testing)
 
 ## Quick start
 
@@ -161,7 +158,6 @@ unconfirmed/unimplemented.
 
 Full plan in [docs/roadmap.md](docs/roadmap.md). Next up:
 
-- [ ] **Automatic retry for the real device's cold-start timeout** — first request after idle intermittently times out, always succeeded on immediate retry in testing.
 - [ ] **Subscribe to the real device's live status WebSocket** instead of polling `/dashboard`.
 - [ ] **Real live video preview** — an actual NDI/SRT frame grab (currently a placeholder).
 - [ ] **Optional auth on flock itself** — currently trusted-LAN only, matching BirdUI's own model.

@@ -104,10 +104,12 @@ with.
     per call; subscribing to this socket instead would be a nice follow-up
     for cheaper, snappier live status.
   - The real device took 5–20+ seconds to respond to some requests in
-    testing, including intermittent cold-start timeouts on the very first
-    request after a period of inactivity (embedded hardware, not a flock
-    bug) — `flock-device-http` uses a 20-second reqwest timeout
-    accordingly, but a retry-on-first-failure would smooth this over.
+    testing (embedded hardware, not a flock bug) - `/login` specifically has
+    been observed alone taking 15-20s while a plain `GET /` on the same
+    device answers in milliseconds. `flock-device-http` uses a 30-second
+    reqwest timeout and retries `login()` once before giving up, since that
+    was the specific hot spot seen to intermittently exceed even the
+    original 20s timeout - confirmed fixed live, not just in theory.
   - `set_decode_settings` always re-submits `dec0_change_source_button`,
     even when the operator only changed an unrelated field like tally mode —
     the real UI itself has no way to change colour-space/audio/screensaver/

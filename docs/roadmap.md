@@ -64,6 +64,16 @@
       can't itself speak the NDI Discovery Server's proprietary protocol
       (checked: no public spec exists outside the NDI SDK).
 
+- [x] **Automatic retry + longer timeout for the real device's observed
+      cold-start behavior.** Hit live while dogfooding a running instance:
+      `/login` alone was seen taking 15-20s, occasionally past the 20s
+      client timeout, even though plain `GET /` on the same device answered
+      in milliseconds. Bumped the client timeout to 30s and added a
+      one-retry loop specifically around `login()` (the observed hot spot)
+      rather than blindly retrying every request. Confirmed fixed live:
+      the same device that was failing repeatedly loaded status
+      successfully afterward.
+
 Deliberately **not** done, and why:
 - **Live WebSocket status** (`ws://<ip>:6790`) isn't wired up —
   `status()` polls and scrapes `/dashboard` per call instead. Works, just
@@ -73,16 +83,9 @@ Deliberately **not** done, and why:
 - **`tally_mode` may read back empty** on a real, never-configured device
   (no hidden-marker fallback confirmed for it, unlike `screensaver_mode`)
   — cosmetic, not a functional gap.
-- **No retry-on-cold-start** — the real device intermittently times out on
-  the very first request after a period of inactivity, then succeeds
-  immediately on retry. Worth an automatic single retry in
-  `flock-device-http` rather than surfacing the error to the UI.
 
 ## Phase 3 — hardening
 
-- [ ] Automatic retry for the real device's observed cold-start timeout
-      (first request after idle intermittently times out; an immediate
-      retry has succeeded every time in testing)
 - [ ] Subscribe to the real device's live status WebSocket instead of
       polling `/dashboard`
 - [ ] Credential storage hardening (currently plaintext in registry.json -
