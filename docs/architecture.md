@@ -69,9 +69,10 @@ with.
      HTML at all, but from a **separate JSON API the device runs on port
      8080**: `GET http://<device-ip>:8080/List` returns
      `{"source name": "ip:port", ...}` for every NDI source it currently
-     sees. `flock-device-http::fetch_source_list` calls this directly and
-     uses it both to populate `available_sources` and to resolve a chosen
-     name to its ip for the write below.
+     sees. `flock-device-http::fetch_source_list` calls this at write time
+     to resolve a chosen name to its ip (see "NDI source routing model"
+     below for why flock no longer also queries this per-device just to
+     populate a picker).
   2. Applying a source requires POSTing `dec0_source_name`, `dec0_source_ip`
      (the resolved `ip:port`), **and** `dec0_change_source_button=dec0_change_source`
      together to `/videoset`. That button field is not cosmetic — omitting
@@ -114,25 +115,72 @@ with.
     every decode save re-applies the source (a harmless no-op if it's
     unchanged, confirmed live, but worth knowing).
 
-## Discovery: why it's a subnet probe, not mDNS
+## Two unrelated kinds of discovery - keep them separate
 
-The original plan (browse `_ndi._tcp.local.`) doesn't work: a real Play
-**does not advertise itself over mDNS at all** — not under `_ndi._tcp`,
-`_http._tcp`, or `_workstation._tcp`. It only carries a plain mDNS hostname
-(e.g. `birddog-021d1.local`, an A record with no accompanying service PTR
-record), which is why `arp -a`/hostname resolution finds it but
-`dns-sd -B`/`ServiceDaemon::browse` never will, confirmed by testing against
-real hardware.
+`crates/discovery` answers two genuinely different questions, and folding
+them together (as an earlier version of this crate did) actively misled the
+UI: an NDI *sender* like a laptop's software output would show up in the
+"devices to add" list even though it isn't a Play and adding it would just
+fail (it doesn't run BirdUI).
 
-`crates/discovery` now runs two mechanisms concurrently (`Discovery::scan`):
-mDNS `_ndi._tcp` browsing (kept — harmless, and may surface other NDI gear),
-plus `subnet_probe`, which sweeps the operator's local IPv4 subnet(s) (via
-`if-addrs`, capped at ~1024 addresses per interface / 512 total) and checks
-each live host's `GET /` for BirdUI's signature: a `BirdDogSession` cookie
-on the response, visible even unauthenticated, checked from headers alone
-without following the redirect or waiting on the slower `/dashboard` render.
-Manual add-by-host remains available regardless, so gaps in either
-mechanism never block getting a device under management.
+- **`Discovery::scan()` — "which hosts are Play units I could add?"** A real
+  Play **does not advertise itself over mDNS at all** — not under
+  `_ndi._tcp`, `_http._tcp`, or `_workstation._tcp`. It only carries a plain
+  mDNS hostname (e.g. `birddog-021d1.local`, an A record with no
+  accompanying service PTR record), which is why `arp -a`/hostname
+  resolution finds it but `dns-sd -B`/`ServiceDaemon::browse` never will -
+  confirmed against real hardware. So this is purely `subnet_probe`: sweep
+  the operator's local IPv4 subnet(s) (via `if-addrs`, capped at ~1024
+  addresses per interface / 512 total) and check each live host's `GET /`
+  for BirdUI's signature (a `BirdDogSession` cookie, visible even
+  unauthenticated, checked from headers alone). Manual add-by-host remains
+  available regardless, so gaps here never block getting a device under
+  management.
+- **`Discovery::ndi_sources()` — "which NDI senders exist, and where?"**
+  This *is* genuinely mDNS `_ndi._tcp.local.` browsing (the pattern already
+  proven in the Dante-BabelBox project) - NDI senders (cameras, software
+  like Mitti, a Mac's own NDI output) do advertise themselves that way. Feeds
+  `GET /api/ndi/sources`, which the Decode tab's source pickers use as
+  autocomplete suggestions.
+
+## NDI source routing model - control plane only, no media relay
+
+Prompted by a good question: how do real NDI routing tools (a BirdDog
+Keyboard, Vizrt's NDI Router) switch a receiver's source without the router
+ever touching video? Answer, confirmed by how BirdUI's own JS works (see
+above): **they never relay media.** NDI senders and receivers connect
+peer-to-peer; a "router" only ever does two things over a control channel -
+discover senders, then tell *the specific receiver* which one to connect to.
+flock is built the same way and deliberately stays that way:
+
+- flock discovers NDI sources itself, centrally, via open mDNS
+  (`ndi_sources()` above) - once, instead of every managed Play doing its
+  own local discovery and flock having to query each one's `:8080/List`
+  separately just to know what's out there.
+- Committing a chosen source to a specific Play still goes through that
+  Play's own control API (the read-modify-write `/videoset` POST described
+  above) - only that device's firmware can tell its own decoder what to
+  connect to, exactly like a Keyboard or Vizrt Router would command it.
+- flock never receives or re-transmits any video/audio itself. No NDI SDK
+  dependency, no media relay engine - `crates/discovery` stays a thin mDNS
+  wrapper.
+
+**NDI Discovery Server** is the professional-grade version of centralized
+discovery (useful across subnets, or when mDNS is blocked) - real NDI
+senders/receivers connect to it over a persistent TCP 5959 socket. Its wire
+protocol is proprietary and undocumented outside the actual NDI SDK (checked
+- the only public material is "it uses TCP port 5959," not a spec a
+from-scratch client could implement). flock can't be a client of it
+without that SDK, so it doesn't try. What it *can* do, since every Play's
+own Network settings already has this exact field
+(`ndi_discovery_server_ips`/`_enabled`), is give one place to configure it
+fleet-wide: `AppSettings.discovery_server` (Local App Settings panel,
+`GET/PUT /api/settings`) plus `POST /api/settings/push-discovery-server`,
+which loops every registered device and pushes that address into its
+Network settings via the existing `DeviceClient` - the same mechanism batch
+edit uses, just targeting the whole registry instead of one tag group
+(since "all devices" isn't a real tag to batch against). flock's own source
+list keeps coming from mDNS either way.
 
 ## Settings tabs mirror BirdUI panels
 
@@ -172,13 +220,19 @@ whole group to a shared template."
   sends a fresh snapshot only when it changed, so idle clients cost nothing
   extra and every open tab stays in sync.
 - `POST/PUT/DELETE /api/devices[...]` — manual add/edit/remove.
-- `GET /api/discovery/scan` — runs the mDNS browse and subnet probe (see
-  Discovery below) and returns hosts not already in the registry.
+- `GET /api/discovery/scan` — runs the subnet probe (see Discovery above)
+  and returns Play-candidate hosts not already in the registry.
+- `GET /api/ndi/sources` — flock's own centralized NDI source list (mDNS),
+  what the Decode tab's source pickers suggest from.
 - `GET/POST /api/devices/:id/{network,decode,system}` — per-tab settings
   read/write, routed through `DeviceClient`.
 - `POST /api/groups/:tag/{network,decode,system}` — batch edit: merges a
   partial JSON patch into every group member's current settings for that
   tab (see Batch edit above).
+- `GET/PUT /api/settings` — flock's own app-level settings (currently just
+  `discovery_server`). `POST /api/settings/push-discovery-server` pushes it
+  to every registered device's Network settings (see NDI source routing
+  model above).
 
 ## Docker + networking
 

@@ -4,7 +4,7 @@ use axum::extract::{Path, State};
 use axum::response::Json;
 use serde::{Deserialize, Serialize};
 
-use flock_core::{Device, DeviceCredentials, DeviceId};
+use flock_core::{AppSettings, Device, DeviceCredentials, DeviceId};
 
 use crate::error::{parse_device_id, ApiError};
 use crate::state::AppState;
@@ -172,7 +172,7 @@ pub async fn reboot_device(
 pub async fn scan_discovery(
     State(state): State<AppState>,
 ) -> Result<Json<Vec<flock_discovery::DiscoveredHost>>, ApiError> {
-    let found = state.discovery.scan(Duration::from_secs(3)).await?;
+    let found = state.discovery.scan().await?;
     let known_hosts: std::collections::HashSet<String> =
         state.registry.list().into_iter().map(|d| d.host).collect();
     let unadded = found
@@ -180,6 +180,69 @@ pub async fn scan_discovery(
         .filter(|h| !known_hosts.contains(&h.host))
         .collect();
     Ok(Json(unadded))
+}
+
+/// flock's own centralized NDI source list (mDNS-based) - what the Decode
+/// tab's source pickers suggest from, replacing having to query each
+/// individual Play's own `:8080/List` endpoint just to see what's out
+/// there. See docs/architecture.md.
+pub async fn get_ndi_sources(
+    State(state): State<AppState>,
+) -> Result<Json<Vec<flock_discovery::NdiSource>>, ApiError> {
+    Ok(Json(
+        state.discovery.ndi_sources(Duration::from_secs(3)).await?,
+    ))
+}
+
+// ---------- app settings ----------
+
+pub async fn get_app_settings(State(state): State<AppState>) -> Json<AppSettings> {
+    Json(state.app_settings.get())
+}
+
+pub async fn set_app_settings(
+    State(state): State<AppState>,
+    Json(settings): Json<AppSettings>,
+) -> Result<Json<AppSettings>, ApiError> {
+    state.app_settings.set(settings)?;
+    Ok(Json(state.app_settings.get()))
+}
+
+/// Pushes the configured discovery server address out to *every*
+/// registered device's Network settings (`ndi_discovery_server_ips`/
+/// `_enabled`) - the one place flock's own knowledge of a discovery server
+/// actually does something, since flock itself can't query that server
+/// directly (no public protocol spec - see docs/architecture.md). Unlike
+/// batch-edit-by-group, this always targets the whole fleet, since "all
+/// devices" isn't a real tag to batch-edit against.
+pub async fn push_discovery_server(
+    State(state): State<AppState>,
+) -> Result<Json<Vec<BatchOutcome>>, ApiError> {
+    let server = state
+        .app_settings
+        .get()
+        .discovery_server
+        .ok_or_else(|| ApiError::BadRequest("no discovery server configured".to_string()))?;
+
+    let devices = state.registry.list();
+    let mut outcomes = Vec::with_capacity(devices.len());
+    for device in devices {
+        let client = state.provider.client_for(&device);
+        let result = async {
+            let mut settings = client.network_settings().await?;
+            settings.ndi_discovery_server_enabled = true;
+            settings.ndi_discovery_server_ips = vec![server.clone()];
+            client.set_network_settings(settings).await
+        }
+        .await;
+        outcomes.push(BatchOutcome {
+            device_id: device.id,
+            device_name: device.name,
+            ok: result.is_ok(),
+            error: result.err().map(|e| e.to_string()),
+        });
+    }
+    Ok(Json(outcomes))
 }
 
 // ---------- batch group settings ----------

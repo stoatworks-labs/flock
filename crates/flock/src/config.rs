@@ -5,6 +5,7 @@ use serde::Deserialize;
 pub struct Config {
     pub bind: String,
     pub registry_path: String,
+    pub app_settings_path: String,
     /// Seeds a handful of canned mock devices on first run so a fresh
     /// instance isn't an empty screen. Has no effect once registry.json
     /// already has content.
@@ -21,6 +22,7 @@ impl Default for Config {
         Self {
             bind: "0.0.0.0:8080".to_string(),
             registry_path: "data/registry.json".to_string(),
+            app_settings_path: "data/app_settings.json".to_string(),
             seed_demo_devices: true,
             provider: "mock".to_string(),
         }

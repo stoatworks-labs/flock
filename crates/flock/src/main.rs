@@ -40,10 +40,14 @@ async fn main() -> anyhow::Result<()> {
         _ => Arc::new(MockClientProvider::new()),
     };
 
+    let app_settings =
+        flock_core::AppSettingsStore::load_or_new(config.app_settings_path.clone().into())?;
+
     let state = AppState {
         registry: Arc::new(registry),
         provider,
         discovery: Arc::new(Discovery::new()?),
+        app_settings: Arc::new(app_settings),
     };
 
     let app = flock_web::app(state);

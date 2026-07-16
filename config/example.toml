@@ -9,6 +9,10 @@ bind = "0.0.0.0:8080"
 # JSON. Point this at a mounted volume in Docker so it survives restarts.
 registry_path = "data/registry.json"
 
+# Where flock's own app-level settings (currently just the NDI Discovery
+# Server address, see the Local App Settings panel) are persisted as JSON.
+app_settings_path = "data/app_settings.json"
+
 # Seeds a few canned mock Play devices on first run so the UI isn't empty
 # before you've added anything. Only applies when the registry is empty -
 # has no effect once you've added or removed real devices.

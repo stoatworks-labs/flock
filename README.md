@@ -58,8 +58,12 @@ overwriting the whole group with a shared template:
 - **Device registry**: any number of BirdDog Play devices, each taggable
   into multiple groups (a device isn't locked to one group).
 - **Discovery**: an active LAN subnet probe (the actual way a real Play is
-  found — it doesn't advertise itself over mDNS at all) plus an mDNS scan
-  for other NDI gear, and manual add-by-host as a fallback that always works.
+  found — it doesn't advertise itself over mDNS at all), manual add-by-host
+  as a fallback that always works, and a *separate*, centralized NDI source
+  list (mDNS) that suggests values in the Decode tab — flock discovers NDI
+  sources once, itself, instead of each Play searching independently, the
+  same control-plane-only model real NDI routers (BirdDog's own Keyboard,
+  Vizrt's NDI Router) use — see [docs/architecture.md](docs/architecture.md).
 - **Full BirdUI parity for Play** (decode-only, so no Encode tab): Status
   (Dashboard), Network, Decode (NDI source + failover), and System
   (password/firmware/Access Manager/UI mode) — every field visible directly
@@ -68,6 +72,10 @@ overwriting the whole group with a shared template:
   device in a group at once. Blank fields mean "leave unchanged" — a batch
   save merges into each device's own current settings rather than
   clobbering the whole group with one shared template.
+- **NDI Discovery Server, fleet-wide**: set it once in Local App Settings and
+  push it to every registered Play's own Network settings in one click
+  (flock can't itself query a Discovery Server — no public protocol spec —
+  but every Play can, so this configures them to).
 - **Live updates**: a WebSocket pushes registry/status changes to every open
   browser tab.
 - **Runs in Docker**: `docker compose up` — see the networking note below.

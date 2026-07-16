@@ -50,6 +50,19 @@
       against the real unit. See docs/architecture.md for the full
       writeup and `crates/device-http/tests/fixtures/videoset_after_apply.html`
       for the fixture proving it.
+- [x] **Centralized NDI source discovery at flock, matching how real NDI
+      routers (BirdDog Keyboard, Vizrt Router) work** — pure control plane,
+      no media relay. Split `crates/discovery` into device discovery
+      (subnet probe) and NDI source discovery (mDNS, properly resolving
+      name+ip:port now); added `GET /api/ndi/sources` and wired it into the
+      Decode tab's source pickers as autocomplete, replacing the old
+      per-device `:8080/List` query for display purposes (still used at
+      write time to resolve a chosen name). Also added an `AppSettings`
+      store (`discovery_server`) with a Local App Settings field and a
+      "push to all devices" action that writes it into every registered
+      Play's own Network settings — honestly scoped to that, since flock
+      can't itself speak the NDI Discovery Server's proprietary protocol
+      (checked: no public spec exists outside the NDI SDK).
 
 Deliberately **not** done, and why:
 - **Live WebSocket status** (`ws://<ip>:6790`) isn't wired up —

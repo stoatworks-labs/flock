@@ -1,19 +1,25 @@
-//! LAN discovery of candidate BirdDog Play hosts.
+//! Two unrelated kinds of LAN discovery live here - keep them separate,
+//! they answer different questions:
 //!
-//! Two independent mechanisms feed into `Discovery::scan`:
-//! - An mDNS browse for `_ndi._tcp.local.` (via `mdns-sd`, the pattern
-//!   already proven in the Dante-BabelBox project) - catches genuine NDI
-//!   sources on the network. Confirmed *not* to catch a real Play itself
-//!   (see `subnet_probe` and docs/architecture.md) but kept since it's
-//!   harmless and may catch other NDI gear worth surfacing.
-//! - An active subnet probe (`subnet_probe`) that's the actual way a real
-//!   Play gets found: it doesn't advertise any mDNS service, so flock
-//!   sweeps the local subnet and checks each host's `GET /` for BirdUI's
-//!   signature instead.
-//!
-//! Manual add in the UI is always available regardless of what either
-//! mechanism finds, so gaps here degrade gracefully rather than blocking
-//! device setup.
+//! - **Device discovery** (`scan`): "which hosts are BirdDog Play units I
+//!   could add to flock." A real Play doesn't advertise itself over mDNS at
+//!   all (not under `_ndi._tcp`, `_http._tcp`, or `_workstation._tcp` -
+//!   confirmed against real hardware, see docs/architecture.md), so this is
+//!   an active subnet probe (`subnet_probe`) checking each host's `GET /`
+//!   for BirdUI's signature. Manual add-by-host is always available
+//!   regardless, so gaps here degrade gracefully.
+//! - **NDI source discovery** (`ndi_sources`): "which NDI senders exist on
+//!   the network right now, and at what address." This is the thing a Play
+//!   itself needs to be *pointed at* to decode - genuinely found via
+//!   standard mDNS `_ndi._tcp.local.` browsing (the pattern already proven
+//!   in the Dante-BabelBox project), since NDI senders (cameras, software
+//!   like Mitti, this Mac's own NDI output) do advertise themselves that
+//!   way. This used to be folded into `scan`'s results, which was actively
+//!   misleading: an NDI sender showing up in the "devices to add" list
+//!   isn't a Play and adding it as one would just fail (it doesn't run
+//!   BirdUI). Centralizing this list here is also what replaces having to
+//!   query each individual Play's own `:8080/List` endpoint just to know
+//!   what's available - see `crates/device-http` and docs/architecture.md.
 
 mod subnet_probe;
 
@@ -21,13 +27,20 @@ use mdns_sd::{ServiceDaemon, ServiceEvent};
 use serde::Serialize;
 use std::time::Duration;
 
-const SERVICE_TYPE: &str = "_ndi._tcp.local.";
+const NDI_SERVICE_TYPE: &str = "_ndi._tcp.local.";
 
 #[derive(Debug, Clone, Serialize)]
 pub struct DiscoveredHost {
     pub name: String,
     pub host: String,
     pub port: u16,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct NdiSource {
+    pub name: String,
+    /// "ip:port", the same shape BirdUI's own source-apply flow expects.
+    pub address: String,
 }
 
 pub struct Discovery {
@@ -41,29 +54,15 @@ impl Discovery {
         })
     }
 
-    /// Runs the mDNS browse (bounded by `timeout`) and the subnet probe
-    /// concurrently and returns the merged, deduped result. Safe to call
-    /// repeatedly.
-    pub async fn scan(&self, timeout: Duration) -> anyhow::Result<Vec<DiscoveredHost>> {
-        let (mdns_result, probe_result) =
-            tokio::join!(self.scan_mdns(timeout), subnet_probe::probe_lan());
-
-        let mut found = mdns_result.unwrap_or_else(|e| {
-            tracing::warn!("mDNS scan failed: {e:#}");
-            vec![]
-        });
-        found.extend(probe_result.unwrap_or_else(|e| {
-            tracing::warn!("subnet probe failed: {e:#}");
-            vec![]
-        }));
-
-        found.sort_by(|a, b| a.host.cmp(&b.host));
-        found.dedup_by(|a, b| a.host == b.host);
-        Ok(found)
+    /// Candidate BirdDog Play hosts not yet in the registry. Subnet-probe
+    /// only - see the module doc for why mDNS isn't part of this.
+    pub async fn scan(&self) -> anyhow::Result<Vec<DiscoveredHost>> {
+        subnet_probe::probe_lan().await
     }
 
-    async fn scan_mdns(&self, timeout: Duration) -> anyhow::Result<Vec<DiscoveredHost>> {
-        let receiver = self.daemon.browse(SERVICE_TYPE)?;
+    /// Every NDI source currently visible over mDNS, deduped by name.
+    pub async fn ndi_sources(&self, timeout: Duration) -> anyhow::Result<Vec<NdiSource>> {
+        let receiver = self.daemon.browse(NDI_SERVICE_TYPE)?;
         let mut found = Vec::new();
         let deadline = tokio::time::Instant::now() + timeout;
 
@@ -74,18 +73,31 @@ impl Discovery {
             }
             match tokio::time::timeout(remaining, receiver.recv_async()).await {
                 Ok(Ok(ServiceEvent::ServiceResolved(info))) => {
-                    found.push(DiscoveredHost {
-                        name: info.get_fullname().to_string(),
-                        host: info.get_hostname().trim_end_matches('.').to_string(),
-                        port: info.get_port(),
-                    });
+                    if let Some(ip) = info.get_addresses_v4().into_iter().next() {
+                        // get_fullname() is "Instance Name._ndi._tcp.local." -
+                        // strip the service-type suffix so this matches the
+                        // plain instance name BirdUI/NDI tools show (and
+                        // that a Play's own :8080/List keys its map by).
+                        let suffix = format!(".{}", info.get_type());
+                        let name = info
+                            .get_fullname()
+                            .strip_suffix(&suffix)
+                            .unwrap_or(info.get_fullname())
+                            .to_string();
+                        found.push(NdiSource {
+                            name,
+                            address: format!("{ip}:{}", info.get_port()),
+                        });
+                    }
                 }
                 Ok(Ok(_)) => continue,
                 Ok(Err(_)) | Err(_) => break,
             }
         }
 
-        let _ = self.daemon.stop_browse(SERVICE_TYPE);
+        let _ = self.daemon.stop_browse(NDI_SERVICE_TYPE);
+        found.sort_by(|a, b| a.name.cmp(&b.name));
+        found.dedup_by(|a, b| a.name == b.name);
         Ok(found)
     }
 }

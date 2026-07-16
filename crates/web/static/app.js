@@ -330,7 +330,8 @@
     const v = opts.batch ? "" : value ?? "";
     const placeholder = opts.batch ? "— leave unchanged —" : "";
     const readOnly = opts.readOnly && !opts.batch ? "readonly" : "";
-    return field(labelFor(id), `<input id="f-${id}" type="text" value="${escapeAttr(v)}" placeholder="${escapeAttr(placeholder)}" ${readOnly}>`);
+    const list = opts.list ? `list="${escapeAttr(opts.list)}"` : "";
+    return field(labelFor(id), `<input id="f-${id}" type="text" value="${escapeAttr(v)}" placeholder="${escapeAttr(placeholder)}" ${readOnly} ${list}>`);
   }
   function numberField(id, value, opts = {}) {
     const v = opts.batch ? "" : value ?? 0;
@@ -450,8 +451,8 @@
       <div class="settings-card">
         <h3>Decode source${opts.batch ? " (batch)" : ""}</h3>
         <div class="field-grid">
-          ${textField("selected_source", s.selected_source, opts)}
-          ${textField("failover_source", s.failover_source, opts)}
+          ${textField("selected_source", s.selected_source, { ...opts, list: "ndi-sources-datalist" })}
+          ${textField("failover_source", s.failover_source, { ...opts, list: "ndi-sources-datalist" })}
           ${selectField("screensaver_mode", s.screensaver_mode, ["CaptureSS", "BlackSS", "BirdDogSS"], opts)}
           ${selectField("color_space", s.color_space, ["YUV", "RGB"], opts)}
           ${checkboxField("ndi_audio_enabled", s.ndi_audio_enabled, opts)}
@@ -512,9 +513,25 @@
 
   // ---------- right panel: discovery + add/remove + local settings ----------
 
+  // flock's own centralized NDI source list (see docs/architecture.md) -
+  // suggests values for the Decode tab's Selected/Failover Source fields
+  // via a <datalist>, refreshed alongside a device scan.
+  async function loadNdiSources() {
+    try {
+      const sources = await api("/api/ndi/sources");
+      el("ndi-sources-datalist").innerHTML = sources
+        .map((s) => `<option value="${escapeAttr(s.name)}">`)
+        .join("");
+    } catch (err) {
+      // Non-fatal - the source fields just fall back to plain free-text
+      // entry with no suggestions.
+    }
+  }
+
   async function runScan() {
     const container = el("discovery-results");
     container.innerHTML = `<div class="discovery-empty">Scanning…</div>`;
+    loadNdiSources();
     try {
       const found = await api("/api/discovery/scan");
       if (found.length === 0) {
@@ -652,6 +669,51 @@
     renderCenter();
   }
 
+  // ---------- app settings (NDI discovery server) ----------
+
+  async function loadAppSettings() {
+    try {
+      const settings = await api("/api/settings");
+      el("discovery-server-input").value = settings.discovery_server || "";
+    } catch (err) {
+      // Non-fatal - leave the field blank/whatever the user last typed.
+    }
+  }
+
+  async function saveDiscoveryServer() {
+    const statusEl = el("discovery-server-status");
+    const value = el("discovery-server-input").value.trim();
+    try {
+      await api("/api/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ discovery_server: value || null }),
+      });
+      statusEl.textContent = "Saved";
+      statusEl.classList.add("visible");
+      setTimeout(() => statusEl.classList.remove("visible"), 1500);
+    } catch (err) {
+      statusEl.textContent = `Error: ${err.message}`;
+      statusEl.classList.add("visible");
+    }
+  }
+
+  async function pushDiscoveryServer() {
+    const statusEl = el("discovery-server-status");
+    try {
+      const outcomes = await api("/api/settings/push-discovery-server", { method: "POST" });
+      const failed = outcomes.filter((o) => !o.ok);
+      statusEl.textContent =
+        failed.length === 0
+          ? `Pushed to ${outcomes.length} device${outcomes.length === 1 ? "" : "s"}`
+          : `Pushed to ${outcomes.length - failed.length}/${outcomes.length} — failed: ${failed.map((f) => f.device_name).join(", ")}`;
+      statusEl.classList.add("visible");
+    } catch (err) {
+      statusEl.textContent = `Error: ${err.message}`;
+      statusEl.classList.add("visible");
+    }
+  }
+
   function escapeHtml(s) {
     return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   }
@@ -693,7 +755,11 @@
     el("import-file").addEventListener("change", (e) => {
       if (e.target.files[0]) importRegistry(e.target.files[0]);
     });
+    el("save-discovery-server-btn").addEventListener("click", saveDiscoveryServer);
+    el("push-discovery-server-btn").addEventListener("click", pushDiscoveryServer);
 
+    loadAppSettings();
+    loadNdiSources();
     loadState().then(connectWs);
   }
 

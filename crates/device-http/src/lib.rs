@@ -315,10 +315,13 @@ impl DeviceClient for HttpDeviceClient {
         let html = self.get_page("/videoset").await?;
         let fields = form::scrape_form_fields(&html);
         let get = |k: &str| fields.get(k).cloned().unwrap_or_default();
-        let sources = self.fetch_source_list().await.unwrap_or_default();
         Ok(DecodeSettings {
             selected_source: none_if_placeholder(get("dec0_source_name")),
-            available_sources: sources.into_keys().filter(|k| k != NONE_SOURCE).collect(),
+            // flock's own centralized discovery (GET /api/ndi/sources, see
+            // crates/discovery) is what the UI suggests from now - this
+            // struct no longer duplicates that per device by querying this
+            // device's own :8080/List just to populate a picker.
+            available_sources: vec![],
             failover_source: none_if_placeholder(get("dec0_fo_source_name")),
             // BirdUI's own JS reads this same hidden marker (not the
             // `selected` attribute) for the page's current value - see

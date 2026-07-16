@@ -41,6 +41,15 @@ pub fn app(state: AppState) -> Router {
         )
         .route("/api/devices/:id/reboot", post(handlers::reboot_device))
         .route("/api/discovery/scan", get(handlers::scan_discovery))
+        .route("/api/ndi/sources", get(handlers::get_ndi_sources))
+        .route(
+            "/api/settings",
+            get(handlers::get_app_settings).put(handlers::set_app_settings),
+        )
+        .route(
+            "/api/settings/push-discovery-server",
+            post(handlers::push_discovery_server),
+        )
         .route(
             "/api/groups/:tag/:tab",
             post(handlers::apply_group_settings),

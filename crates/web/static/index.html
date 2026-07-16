@@ -79,6 +79,14 @@
             <option value="light">Light</option>
           </select>
         </label>
+        <label>NDI discovery server
+          <input id="discovery-server-input" type="text" placeholder="e.g. 192.168.1.5 (optional)">
+        </label>
+        <div class="form-actions">
+          <button class="btn" id="save-discovery-server-btn">Save</button>
+          <button class="btn" id="push-discovery-server-btn">Push to all devices</button>
+        </div>
+        <div class="save-row"><span class="save-status" id="discovery-server-status"></span></div>
         <div class="form-actions">
           <button class="btn" id="export-btn">Export registry</button>
           <label class="btn" id="import-btn">Import registry
@@ -89,5 +97,7 @@
     </aside>
   </div>
 </div>
+
+<datalist id="ndi-sources-datalist"></datalist>
 
 <script src="/app.js"></script>
