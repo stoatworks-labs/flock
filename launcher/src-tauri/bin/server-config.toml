@@ -1,0 +1,26 @@
+# flock configuration. Copy to config/flock.toml (or pass a path as the
+# first CLI arg / mount it at that path in Docker) to override defaults.
+# Every field is optional - anything omitted falls back to Config::default().
+
+# Address flock's web UI/API binds to.
+bind = "0.0.0.0:8080"
+
+# Where the device registry (name/host/tags/credentials) is persisted as
+# JSON. Point this at a mounted volume in Docker so it survives restarts.
+registry_path = "data/registry.json"
+
+# Where flock's own app-level settings (currently just the NDI Discovery
+# Server address, see the Local App Settings panel) are persisted as JSON.
+app_settings_path = "data/app_settings.json"
+
+# Seeds a few canned mock Play devices on first run so the UI isn't empty
+# before you've added anything. Only applies when the registry is empty -
+# has no effect once you've added or removed real devices.
+seed_demo_devices = true
+
+# "mock" (default) talks to the built-in simulated Play - good for trying
+# flock out or developing against it with no hardware. "http" talks to real
+# BirdDog PLAY hardware over its actual BirdUI (session-cookie login, HTML
+# scraping - see docs/architecture.md for what's confirmed against real
+# firmware and what's still unconfirmed).
+provider = "mock"

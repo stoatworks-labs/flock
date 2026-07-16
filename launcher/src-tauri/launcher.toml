@@ -1,0 +1,22 @@
+# flock launcher config — paths are relative to the app's bundled resources
+# (see tauri.conf.json `bundle.resources`), so the shipped .app is
+# self-contained: it carries the flock binary and a config template.
+#
+# flock specifics: config is a POSITIONAL arg (not --config), and the web bind
+# is the TOP-LEVEL `bind` key (not nested). cwd is omitted so the server runs
+# from the writable app-config dir (where it also writes data/registry.json).
+
+[app]
+name = "flock"
+command = "bin/flock"
+args = ["{config}"]
+url = "http://{host}:{port}/"
+default_port = 8080
+
+[inject]
+mode = "configfile"
+
+[inject.configfile]
+template = "bin/server-config.toml"
+set_key = "bind"
+value = "{host}:{port}"
