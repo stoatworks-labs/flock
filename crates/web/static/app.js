@@ -331,7 +331,15 @@
     const placeholder = opts.batch ? "— leave unchanged —" : "";
     const readOnly = opts.readOnly && !opts.batch ? "readonly" : "";
     const list = opts.list ? `list="${escapeAttr(opts.list)}"` : "";
-    return field(labelFor(id), `<input id="f-${id}" type="text" value="${escapeAttr(v)}" placeholder="${escapeAttr(placeholder)}" ${readOnly} ${list}>`);
+    // A <datalist> filters its suggestions by the input's *current* text,
+    // so a field that already has a value (e.g. the currently-selected
+    // source) would otherwise only ever suggest itself, hiding every other
+    // option. Clearing the field on focus reveals the full list; blurring
+    // without typing or picking anything restores what was there.
+    const revealOnFocus = opts.list
+      ? `onfocus="this.dataset.prev=this.value; this.dataset.touched=''; this.value='';" oninput="this.dataset.touched='1';" onblur="if(!this.dataset.touched) this.value=this.dataset.prev || '';"`
+      : "";
+    return field(labelFor(id), `<input id="f-${id}" type="text" value="${escapeAttr(v)}" placeholder="${escapeAttr(placeholder)}" ${readOnly} ${list} ${revealOnFocus}>`);
   }
   function numberField(id, value, opts = {}) {
     const v = opts.batch ? "" : value ?? 0;
