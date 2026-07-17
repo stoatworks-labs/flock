@@ -141,15 +141,15 @@ mDNS) can reach the LAN from inside the container — see
 tradeoff and the bridge-networking alternative if you'd rather keep
 container isolation and rely on manual add only.
 
-### Desktop launcher
+### Desktop app
 
-Prefer not to touch the terminal? A Bitfocus Companion–style menu-bar launcher
-lets you pick the network interface + port, Start/Stop the server, and open the
-web UI — with `flock` bundled inside, so it runs standalone. Grab the `.dmg`
-from [Releases](https://github.com/allansargeant/flock/releases), or see
-[launcher/](launcher/) to build it.
+Prefer not to touch the terminal? A small menu-bar app lets you pick the network
+interface + port, Start/Stop the server, and open the web UI. The `flock` server
+is bundled inside, so it's a single download — nothing to install or wire up.
+Grab the `.dmg` from [Releases](https://github.com/allansargeant/flock/releases),
+or see [launcher/](launcher/) to build it.
 
-<p align="center"><img src="launcher/docs/panel.png" width="320" alt="flock Launcher"></p>
+<p align="center"><img src="launcher/docs/panel.png" width="300" alt="flock desktop app"></p>
 
 ## Architecture
 
