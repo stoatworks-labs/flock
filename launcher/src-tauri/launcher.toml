@@ -20,3 +20,16 @@ mode = "configfile"
 template = "bin/server-config.toml"
 set_key = "bind"
 value = "{host}:{port}"
+
+# Palette mirrored from flock's web UI (dark + emerald accent).
+[app.theme]
+bg = "#14161a"
+panel = "#1b1e24"
+"panel-2" = "#21252c"
+border = "#2c313a"
+text = "#e6e8eb"
+muted = "#9aa1ac"
+dim = "#6b7280"
+accent = "#1fae63"
+"accent-soft" = "#15271d"
+good = "#1fae63"

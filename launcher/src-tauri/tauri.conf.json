@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "flock Launcher",
+  "productName": "flock",
   "version": "0.1.0",
-  "identifier": "com.allansargeant.flock-launcher",
+  "identifier": "com.allansargeant.flock",
   "build": {
     "frontendDist": "../src"
   },
@@ -11,7 +11,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "flock Launcher",
+        "title": "flock",
         "width": 460,
         "height": 500,
         "resizable": false,
@@ -26,7 +26,10 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["app", "dmg"],
+    "targets": [
+      "app",
+      "dmg"
+    ],
     "resources": [
       "launcher.toml",
       "bin/flock",
