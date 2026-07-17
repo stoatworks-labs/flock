@@ -352,6 +352,10 @@ whole group to a shared template."
 
 - `GET /` , `/app.js`, `/style.css` — static frontend, `include_str!`'d into
   the binary, no bundler (same choice srt-router made).
+- `GET /health` — plain healthcheck, used by `docker-compose.yml`.
+- `POST /api/login`, `POST /api/logout` — flock's own optional auth (see
+  "flock's own auth" above); public regardless of whether `admin_password`
+  is set, since a login route can't itself require being logged in.
 - `GET /api/state` — full registry snapshot (devices + derived groups), used
   for first paint.
 - `GET /ws` — one-way server→client push. Polls the registry every 750ms and
