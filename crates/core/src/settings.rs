@@ -67,14 +67,48 @@ pub struct NetworkSettings {
     pub ndi_discovery_server_ips: Vec<String>,
 }
 
+/// Play decodes from either an NDI or an SRT source - `source_type` picks
+/// which, mirroring BirdUI's own "Source Selection" dropdown. This panel
+/// wasn't present on firmware 1.0.18 (see the "Confirmed against real
+/// hardware" section this file's other docs reference) and only appeared
+/// after a firmware update; confirmed from a real BirdUI screenshot of the
+/// visible labels/values, but the underlying HTML field *names* haven't
+/// been verified live yet - see docs/architecture.md.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DecodeSettings {
+    /// Real option values (best guess pending live confirmation): "NDI", "SRT".
+    pub source_type: String,
+
+    // ---- NDI source (used when source_type == "NDI") ----
     pub selected_source: Option<String>,
     /// Real device has no discovered-source picker for this field - it's a
     /// free-text NDI source name. Kept for a future NDI-SDK-backed picker;
     /// against real hardware this is always empty.
     pub available_sources: Vec<String>,
     pub failover_source: Option<String>,
+
+    // ---- SRT source (used when source_type == "SRT") ----
+    /// Real option values (from the screenshot): "caller", "listener".
+    pub srt_connection_type: String,
+    pub srt_stream_name: Option<String>,
+    pub srt_ip_address: Option<String>,
+    pub srt_port: Option<u16>,
+    pub srt_latency_ms: u32,
+    pub srt_encryption_enabled: bool,
+    /// Dropdown shown as "None" by default in the screenshot - real option
+    /// set unconfirmed (likely None/AES-128/AES-192/AES-256).
+    pub srt_encryption_key_length: Option<String>,
+    pub srt_passphrase: Option<String>,
+    pub srt_stream_id: Option<String>,
+    /// The real UI also offers picking from a device-side "SRT Sources"
+    /// list (an "UPDATE SRT SOURCES" refresh + "Select Source" + "Apply"
+    /// flow, mirroring the NDI source-apply mechanism) as an alternative to
+    /// typing connection details manually. Not wired up to write yet - the
+    /// exact field/button names for that flow are unconfirmed; the manual
+    /// fields above are the supported way to set an SRT source for now.
+    pub srt_available_sources: Vec<String>,
+
+    // ---- shared regardless of source_type ----
     /// Real option values: "CaptureSS" (captured frame), "BlackSS", "BirdDogSS".
     pub screensaver_mode: String,
     /// Real option values: "YUV", "RGB".

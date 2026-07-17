@@ -117,6 +117,53 @@ with.
     every decode save re-applies the source (a harmless no-op if it's
     unchanged, confirmed live, but worth knowing).
 
+## SRT decode support - best-guess field mapping, not yet confirmed
+
+The firmware `1.0.18` unit this project was originally verified against had
+**no SRT UI at all** in `/videoset` - `DecodeSettings` only modeled NDI
+source/failover. After a firmware update applied mid-development, the
+operator's real Play started showing a second "Source Selection" mode (NDI
+vs SRT) with its own connection-type/stream-name/IP/port/latency/encryption/
+passphrase/stream-ID fields and an "UPDATE SRT SOURCES" device-side picker
+flow - captured only as a screenshot of BirdUI's rendered labels, not as
+fetched HTML, because the device became unreachable (moved to a different
+subnet) before it could be re-scraped.
+
+What this means concretely for `crates/core/src/settings.rs`'s
+`DecodeSettings` and `crates/device-http/src/lib.rs`:
+
+- `source_type` ("NDI"/"SRT") and every `srt_*` field's real HTML `name`
+  attribute is a **guess** (`decode_SourceType`, `dec0_srt_connection_type`,
+  `dec0_srt_stream_name`, `dec0_srt_ip_address`, `dec0_srt_port`,
+  `dec0_srt_latency`, `dec0_srt_encryption`, `dec0_srt_enc_key_length`,
+  `dec0_srt_passphrase`, `dec0_srt_stream_id`), chosen to follow the same
+  naming convention as the confirmed NDI/network fields above, not read from
+  real markup.
+- `decode_settings()` degrades gracefully if these guesses are wrong: a
+  missing key just yields `""` from `scrape_form_fields`, which every field
+  above falls back to a sane default for (e.g. `"caller"` for connection
+  type, `120` for latency) rather than erroring.
+- `set_decode_settings()` sends these guessed fields unconditionally
+  alongside the confirmed NDI ones, following the existing read-modify-write
+  pattern (unrecognized POST fields should be harmless server-side, the same
+  assumption every other unmodeled real field already relies on) - but this
+  is unverified against actual hardware and must not be treated as working
+  until it's re-tested live.
+- The device-side "SRT Sources" refresh/pick flow (mirroring the NDI
+  "Apply Source" mechanism `dec0_change_source_button` gates) is **not**
+  implemented - `srt_available_sources` is always empty. Its button/field
+  names are unknown; wiring it up requires live access to the updated
+  firmware's actual `/videoset` HTML.
+- `crates/device-mock` and the frontend (`crates/web/static/app.js`'s
+  `decodeForm`/`collectDecodeForm`, toggled via `toggleSourceType()`) are
+  fully implemented and verified against the mock provider - only the real
+  HTTP field-name mapping is unconfirmed.
+
+Next time the device is reachable: fetch a real `/videoset` page with SRT
+mode selected, diff its field names against the guesses above, add a
+`videoset_srt.html` fixture under `crates/device-http/tests/fixtures/`, and
+update this section from "best-guess" to "confirmed".
+
 ## Two unrelated kinds of discovery - keep them separate
 
 `crates/discovery` answers two genuinely different questions, and folding

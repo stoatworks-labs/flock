@@ -37,8 +37,11 @@ multicast, and discovery server settings, all in one flat panel:
 
 ![flock Network tab with DHCP/static, NDI transmit method, and multicast fields](docs/screenshots/network.png)
 
-**Decode** tab — source selection, failover, screensaver, colour space, NDI
-audio, and tally (Play is decode-only, so there is no Encode tab):
+**Decode** tab — NDI or SRT source selection (toggled per-device),
+failover, screensaver, colour space, NDI audio, and tally (Play is
+decode-only, so there is no Encode tab). SRT support is new — see
+[Status](#status) for what's confirmed against real hardware vs. still a
+best guess:
 
 ![flock Decode tab showing NDI source and failover fields](docs/screenshots/decode.png)
 
@@ -67,7 +70,8 @@ template:
   same control-plane-only model real NDI routers (BirdDog's own Keyboard,
   Vizrt's NDI Router) use — see [docs/architecture.md](docs/architecture.md).
 - **Full BirdUI parity for Play** (decode-only, so no Encode tab): Status
-  (Dashboard), Network, Decode (NDI source + failover), and System
+  (Dashboard), Network, Decode (NDI source + failover, or SRT — caller/
+  listener, stream name, IP/port, latency, encryption), and System
   (password/firmware/Access Manager/UI mode) — every field visible directly
   in its tab, nothing behind a submenu.
 - **Nested groups, one click to batch-edit**: groups are a vertical tree in
@@ -114,11 +118,19 @@ Working:
 - Subnet-probe + mDNS discovery scan + manual add/edit/remove
 - `docker-compose.yml` with host networking (needed for the subnet probe and
   mDNS alike)
+- SRT decode support (the operator's real Play gained this after a firmware
+  update mid-development): full data model, mock defaults, and frontend
+  toggle all built and round-trip-verified against `device-mock` — but
+  `flock-device-http`'s real HTML field names for it are a **best guess**
+  from a screenshot, not yet confirmed live (the device moved to a different
+  subnet before it could be re-scraped) — see
+  [docs/architecture.md](docs/architecture.md#srt-decode-support---best-guess-field-mapping-not-yet-confirmed)
 
 Not yet done:
 - Live video preview is a placeholder (needs an actual NDI/SRT frame grab)
 - No auth on flock itself — meant for a trusted LAN, same trust model as the
   device's own BirdUI
+- Real HTML field names for SRT decode settings (see above)
 
 ## Quick start
 

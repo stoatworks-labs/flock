@@ -334,6 +334,23 @@ impl DeviceClient for HttpDeviceClient {
         let fields = form::scrape_form_fields(&html);
         let get = |k: &str| fields.get(k).cloned().unwrap_or_default();
         Ok(DecodeSettings {
+            // SRT support only appeared after a firmware update the user
+            // applied mid-development; the device has been unreachable
+            // (different subnet) since, so every `dec0_srt_*` / `decode_
+            // SourceType` field name below is a best-guess from a BirdUI
+            // screenshot's visible labels, NOT confirmed against real HTML
+            // like the NDI/network fields above are. `get()` on a wrong key
+            // just yields an empty string (harmless fallback to the default
+            // shown here) rather than an error, so this degrades gracefully
+            // if the guesses are wrong - see docs/architecture.md.
+            source_type: {
+                let v = get("decode_SourceType");
+                if v.is_empty() {
+                    "NDI".to_string()
+                } else {
+                    v
+                }
+            },
             selected_source: none_if_placeholder(get("dec0_source_name")),
             // flock's own centralized discovery (GET /api/ndi/sources, see
             // crates/discovery) is what the UI suggests from now - this
@@ -341,6 +358,26 @@ impl DeviceClient for HttpDeviceClient {
             // device's own :8080/List just to populate a picker.
             available_sources: vec![],
             failover_source: none_if_placeholder(get("dec0_fo_source_name")),
+            srt_connection_type: {
+                let v = get("dec0_srt_connection_type");
+                if v.is_empty() {
+                    "caller".to_string()
+                } else {
+                    v
+                }
+            },
+            srt_stream_name: none_if_placeholder(get("dec0_srt_stream_name")),
+            srt_ip_address: none_if_placeholder(get("dec0_srt_ip_address")),
+            srt_port: get("dec0_srt_port").parse().ok(),
+            srt_latency_ms: get("dec0_srt_latency").parse().unwrap_or(120),
+            srt_encryption_enabled: get("dec0_srt_encryption") == "SRTEncEn",
+            srt_encryption_key_length: none_if_placeholder(get("dec0_srt_enc_key_length")),
+            srt_passphrase: none_if_placeholder(get("dec0_srt_passphrase")),
+            srt_stream_id: none_if_placeholder(get("dec0_srt_stream_id")),
+            // Device-side "SRT Sources" refresh/pick flow - the button/list
+            // field names for that are unconfirmed (see the doc comment on
+            // `DecodeSettings::srt_available_sources`), so not scraped yet.
+            srt_available_sources: vec![],
             // BirdUI's own JS reads this same hidden marker (not the
             // `selected` attribute) for the page's current value - see
             // docs/architecture.md.
@@ -379,6 +416,56 @@ impl DeviceClient for HttpDeviceClient {
         fields.insert(
             "dec0_change_source_button".into(),
             "dec0_change_source".into(),
+        );
+
+        // Best-guess SRT field names (see the matching comment in
+        // `decode_settings` above) - unconfirmed against real hardware.
+        // Sent unconditionally alongside the NDI fields since BirdUI's own
+        // read-modify-write pattern already round-trips every field the page
+        // knows about regardless of which source_type is active; if these
+        // keys don't match the real form, the server should just ignore the
+        // unrecognized fields the same way it ignores flock's own added
+        // fields for any other unmodeled setting.
+        fields.insert("decode_SourceType".into(), settings.source_type);
+        fields.insert(
+            "dec0_srt_connection_type".into(),
+            settings.srt_connection_type,
+        );
+        fields.insert(
+            "dec0_srt_stream_name".into(),
+            settings.srt_stream_name.unwrap_or_default(),
+        );
+        fields.insert(
+            "dec0_srt_ip_address".into(),
+            settings.srt_ip_address.unwrap_or_default(),
+        );
+        fields.insert(
+            "dec0_srt_port".into(),
+            settings.srt_port.map(|p| p.to_string()).unwrap_or_default(),
+        );
+        fields.insert(
+            "dec0_srt_latency".into(),
+            settings.srt_latency_ms.to_string(),
+        );
+        fields.insert(
+            "dec0_srt_encryption".into(),
+            if settings.srt_encryption_enabled {
+                "SRTEncEn".into()
+            } else {
+                "SRTEncDis".into()
+            },
+        );
+        fields.insert(
+            "dec0_srt_enc_key_length".into(),
+            settings.srt_encryption_key_length.unwrap_or_default(),
+        );
+        fields.insert(
+            "dec0_srt_passphrase".into(),
+            settings.srt_passphrase.unwrap_or_default(),
+        );
+        fields.insert(
+            "dec0_srt_stream_id".into(),
+            settings.srt_stream_id.unwrap_or_default(),
         );
 
         fields.insert("decode_ScreenSaverMode".into(), settings.screensaver_mode);

@@ -268,6 +268,7 @@
       } else if (state.activeTab === "decode") {
         const settings = await api(`/api/devices/${id}/decode`);
         container.innerHTML = decodeForm(settings);
+        toggleSourceType();
         wireSaveForm(id, "decode", collectDecodeForm);
       } else if (state.activeTab === "system") {
         const settings = await api(`/api/devices/${id}/system`);
@@ -315,6 +316,9 @@
       wireBatchSaveForm(tag, "network", () => collectNetworkForm(opts));
     } else if (state.activeTab === "decode") {
       container.innerHTML = decodeForm({}, opts);
+      // Batch edit fields default to "leave unchanged", so both the NDI and
+      // SRT groups stay visible here (unlike the per-device toggle) in case
+      // the operator wants to touch either regardless of source_type.
       wireBatchSaveForm(tag, "decode", () => collectDecodeForm(opts));
     } else if (state.activeTab === "system") {
       container.innerHTML = systemForm({}, opts);
@@ -397,7 +401,8 @@
       ? `<option value="" selected>— leave unchanged —</option>` +
         options.map((o) => `<option value="${escapeAttr(o)}">${escapeHtml(o)}</option>`).join("")
       : options.map((o) => `<option value="${escapeAttr(o)}" ${o === value ? "selected" : ""}>${escapeHtml(o)}</option>`).join("");
-    return field(labelFor(id), `<select id="f-${id}">${optionsHtml}</select>`);
+    const onchange = opts.onchange ? `onchange="${escapeAttr(opts.onchange)}"` : "";
+    return field(labelFor(id), `<select id="f-${id}" ${onchange}>${optionsHtml}</select>`);
   }
   function labelFor(id) {
     return id.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
@@ -491,13 +496,43 @@
 
   // ---------- Decode tab ----------
 
+  // Which of the NDI/SRT field groups is shown follows `source_type`,
+  // mirroring BirdUI's own "Source Selection" toggle (screenshotted from a
+  // real, firmware-updated Play - see docs/architecture.md for how much of
+  // the underlying field mapping is still unconfirmed).
+  function toggleSourceType() {
+    const t = document.getElementById("f-source_type").value;
+    const ndi = document.getElementById("ndi-source-fields");
+    const srt = document.getElementById("srt-source-fields");
+    if (ndi) ndi.style.display = t === "SRT" ? "none" : "";
+    if (srt) srt.style.display = t === "SRT" ? "" : "none";
+  }
+  window.toggleSourceType = toggleSourceType;
+
   function decodeForm(s, opts = {}) {
+    const sourceType = opts.batch ? "" : s.source_type || "NDI";
     return `
       <div class="settings-card">
         <h3>Decode source${opts.batch ? " (batch)" : ""}</h3>
         <div class="field-grid">
+          ${selectField("source_type", sourceType, ["NDI", "SRT"], { ...opts, onchange: "toggleSourceType()" })}
+        </div>
+        <div class="field-grid" id="ndi-source-fields">
           ${textField("selected_source", s.selected_source, { ...opts, list: "ndi-sources-datalist" })}
           ${textField("failover_source", s.failover_source, { ...opts, list: "ndi-sources-datalist" })}
+        </div>
+        <div class="field-grid" id="srt-source-fields">
+          ${selectField("srt_connection_type", opts.batch ? "" : s.srt_connection_type || "caller", ["caller", "listener"], opts)}
+          ${textField("srt_stream_name", s.srt_stream_name, opts)}
+          ${textField("srt_ip_address", s.srt_ip_address, opts)}
+          ${numberField("srt_port", s.srt_port, opts)}
+          ${numberField("srt_latency_ms", s.srt_latency_ms, opts)}
+          ${checkboxField("srt_encryption_enabled", s.srt_encryption_enabled, opts)}
+          ${textField("srt_encryption_key_length", s.srt_encryption_key_length, opts)}
+          ${textField("srt_passphrase", s.srt_passphrase, opts)}
+          ${textField("srt_stream_id", s.srt_stream_id, opts)}
+        </div>
+        <div class="field-grid">
           ${selectField("screensaver_mode", s.screensaver_mode, ["CaptureSS", "BlackSS", "BirdDogSS"], opts)}
           ${selectField("color_space", s.color_space, ["YUV", "RGB"], opts)}
           ${checkboxField("ndi_audio_enabled", s.ndi_audio_enabled, opts)}
@@ -509,9 +544,20 @@
   function collectDecodeForm(opts = {}) {
     if (!opts.batch) {
       return {
+        source_type: val("source_type"),
         selected_source: val("selected_source") || null,
         available_sources: [],
         failover_source: val("failover_source") || null,
+        srt_connection_type: val("srt_connection_type"),
+        srt_stream_name: val("srt_stream_name") || null,
+        srt_ip_address: val("srt_ip_address") || null,
+        srt_port: val("srt_port") ? Number(val("srt_port")) : null,
+        srt_latency_ms: Number(val("srt_latency_ms")),
+        srt_encryption_enabled: checked("srt_encryption_enabled"),
+        srt_encryption_key_length: val("srt_encryption_key_length") || null,
+        srt_passphrase: val("srt_passphrase") || null,
+        srt_stream_id: val("srt_stream_id") || null,
+        srt_available_sources: [],
         screensaver_mode: val("screensaver_mode"),
         color_space: val("color_space"),
         ndi_audio_enabled: checked("ndi_audio_enabled"),
@@ -519,8 +565,18 @@
       };
     }
     const patch = {};
+    setIfPresent(patch, "source_type", val("source_type"));
     setIfPresent(patch, "selected_source", val("selected_source"));
     setIfPresent(patch, "failover_source", val("failover_source"));
+    setIfPresent(patch, "srt_connection_type", val("srt_connection_type"));
+    setIfPresent(patch, "srt_stream_name", val("srt_stream_name"));
+    setIfPresent(patch, "srt_ip_address", val("srt_ip_address"));
+    setIfPresentNumber(patch, "srt_port", val("srt_port"));
+    setIfPresentNumber(patch, "srt_latency_ms", val("srt_latency_ms"));
+    setIfPresentBool(patch, "srt_encryption_enabled", val("srt_encryption_enabled"));
+    setIfPresent(patch, "srt_encryption_key_length", val("srt_encryption_key_length"));
+    setIfPresent(patch, "srt_passphrase", val("srt_passphrase"));
+    setIfPresent(patch, "srt_stream_id", val("srt_stream_id"));
     setIfPresent(patch, "screensaver_mode", val("screensaver_mode"));
     setIfPresent(patch, "color_space", val("color_space"));
     setIfPresentBool(patch, "ndi_audio_enabled", val("ndi_audio_enabled"));
