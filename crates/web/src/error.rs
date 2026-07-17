@@ -5,6 +5,7 @@ pub enum ApiError {
     NotFound,
     BadRequest(String),
     Unauthorized(String),
+    TooManyRequests(String),
     Internal(anyhow::Error),
 }
 
@@ -22,6 +23,7 @@ impl IntoResponse for ApiError {
             }
             ApiError::BadRequest(msg) => (StatusCode::BAD_REQUEST, msg).into_response(),
             ApiError::Unauthorized(msg) => (StatusCode::UNAUTHORIZED, msg).into_response(),
+            ApiError::TooManyRequests(msg) => (StatusCode::TOO_MANY_REQUESTS, msg).into_response(),
             ApiError::Internal(e) => {
                 tracing::error!("internal error: {e:#}");
                 (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response()

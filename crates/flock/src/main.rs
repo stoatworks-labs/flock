@@ -54,6 +54,7 @@ async fn main() -> anyhow::Result<()> {
         app_settings: Arc::new(app_settings),
         admin_password: config.admin_password.clone(),
         sessions: Arc::new(std::sync::RwLock::new(std::collections::HashSet::new())),
+        login_guard: Arc::new(flock_web::LoginGuard::new()),
     };
 
     let app = flock_web::app(state);

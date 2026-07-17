@@ -85,6 +85,13 @@ single-operator LAN tool — see Phase 3 in docs/roadmap.md).
   session is required (show the login screen), anything else means there's
   no gate at all (start the app immediately) — the same request that would
   happen anyway doubles as the auth probe.
+- **Login is rate-limited, process-wide, not per-client.** `LoginGuard`
+  (in `auth.rs`, held on `AppState` like everything else) locks out further
+  `POST /api/login` attempts for 30s after 5 failures — even a *correct*
+  password is rejected with `429` while locked, confirmed live. It's
+  process-wide rather than per-IP deliberately: there's only one password to
+  guess in the first place, so there's no useful notion of "which caller" to
+  scope a limit to. A success resets the counter.
 - **`Config`'s hand-rolled `Debug` impl redacts `admin_password`** — it's
   logged at startup (`tracing::info!(?config, ...)`) alongside every other
   setting, and a derived `Debug` would have put the plaintext password in

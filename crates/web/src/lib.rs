@@ -5,6 +5,7 @@ mod state;
 mod static_assets;
 mod ws;
 
+pub use auth::LoginGuard;
 pub use flock_discovery::DiscoveredHost;
 pub use state::AppState;
 

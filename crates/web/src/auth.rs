@@ -9,6 +9,9 @@
 //! a process restart naturally logs everyone out, which is an acceptable
 //! tradeoff for a single-operator LAN tool.
 
+use std::sync::Mutex;
+use std::time::{Duration, Instant};
+
 use axum::extract::{Request, State};
 use axum::http::header::{COOKIE, SET_COOKIE};
 use axum::http::{HeaderMap, StatusCode};
@@ -22,6 +25,49 @@ use crate::error::ApiError;
 use crate::state::AppState;
 
 const COOKIE_NAME: &str = "flock_session";
+const MAX_FAILURES: u32 = 5;
+const LOCKOUT: Duration = Duration::from_secs(30);
+
+/// Guards `POST /api/login` against unlimited password guesses. Tracked
+/// process-wide rather than per-client: there's only one password to guess
+/// (the whole point of `admin_password`), so there's no useful notion of
+/// "which caller" to scope a limit to - a client that keeps guessing wrong
+/// pauses everyone's next attempt for a short cooldown, which is an
+/// acceptable tradeoff for a single-shared-password LAN tool.
+#[derive(Default)]
+pub struct LoginGuard(Mutex<LoginGuardState>);
+
+#[derive(Default)]
+struct LoginGuardState {
+    failures: u32,
+    locked_until: Option<Instant>,
+}
+
+impl LoginGuard {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// `Some(remaining)` if a lockout from prior failures is still active.
+    fn check_locked(&self) -> Option<Duration> {
+        let state = self.0.lock().expect("login guard lock poisoned");
+        let until = state.locked_until?;
+        let now = Instant::now();
+        (now < until).then(|| until - now)
+    }
+
+    fn record_failure(&self) {
+        let mut state = self.0.lock().expect("login guard lock poisoned");
+        state.failures += 1;
+        if state.failures >= MAX_FAILURES {
+            state.locked_until = Some(Instant::now() + LOCKOUT);
+        }
+    }
+
+    fn record_success(&self) {
+        *self.0.lock().expect("login guard lock poisoned") = LoginGuardState::default();
+    }
+}
 
 #[derive(Deserialize)]
 pub struct LoginRequest {
@@ -37,9 +83,17 @@ pub async fn login(
             "this flock instance has no admin_password configured - nothing to log into".into(),
         ));
     };
+    if let Some(remaining) = state.login_guard.check_locked() {
+        return Err(ApiError::TooManyRequests(format!(
+            "too many failed attempts - try again in {}s",
+            remaining.as_secs() + 1
+        )));
+    }
     if !constant_time_eq(&body.password, admin_password) {
+        state.login_guard.record_failure();
         return Err(ApiError::Unauthorized("incorrect password".into()));
     }
+    state.login_guard.record_success();
     let token = new_session_token();
     state
         .sessions
@@ -144,5 +198,37 @@ mod tests {
     #[test]
     fn session_token_absent_without_cookie() {
         assert_eq!(session_token(&HeaderMap::new()), None);
+    }
+
+    #[test]
+    fn allows_attempts_under_the_failure_threshold() {
+        let guard = LoginGuard::new();
+        for _ in 0..MAX_FAILURES - 1 {
+            guard.record_failure();
+        }
+        assert!(guard.check_locked().is_none());
+    }
+
+    #[test]
+    fn locks_out_after_max_failures() {
+        let guard = LoginGuard::new();
+        for _ in 0..MAX_FAILURES {
+            guard.record_failure();
+        }
+        let remaining = guard.check_locked();
+        assert!(remaining.is_some());
+        assert!(remaining.unwrap() <= LOCKOUT);
+    }
+
+    #[test]
+    fn success_resets_the_failure_count() {
+        let guard = LoginGuard::new();
+        for _ in 0..MAX_FAILURES - 1 {
+            guard.record_failure();
+        }
+        guard.record_success();
+        // Would have tipped into lockout without the reset.
+        guard.record_failure();
+        assert!(guard.check_locked().is_none());
     }
 }

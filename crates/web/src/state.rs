@@ -4,6 +4,8 @@ use std::sync::{Arc, RwLock};
 use flock_core::{AppSettingsStore, DeviceClientProvider, Registry};
 use flock_discovery::Discovery;
 
+use crate::auth::LoginGuard;
+
 #[derive(Clone)]
 pub struct AppState {
     pub registry: Arc<Registry>,
@@ -19,4 +21,6 @@ pub struct AppState {
     /// everyone out, which is an acceptable tradeoff for a LAN tool over the
     /// complexity of persisting/expiring sessions.
     pub sessions: Arc<RwLock<HashSet<String>>>,
+    /// Failed-login tracking for `POST /api/login` - see `LoginGuard`.
+    pub login_guard: Arc<LoginGuard>,
 }
