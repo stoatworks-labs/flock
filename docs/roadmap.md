@@ -88,8 +88,14 @@ Deliberately **not** done, and why:
 
 - [ ] Subscribe to the real device's live status WebSocket instead of
       polling `/dashboard`
-- [ ] Credential storage hardening (currently plaintext in registry.json -
-      fine for a trusted LAN, not for anything more exposed)
+- [x] **Credential storage hardening** — `registry.json` no longer holds
+      plaintext passwords. Each is AES-256-GCM encrypted at the
+      `Registry::save`/`load_or_new` boundary with a key auto-generated in
+      a sibling `credentials.key` file (chmod 600); a legacy plaintext
+      registry.json still loads correctly and gets encrypted on its next
+      save. See docs/architecture.md's "Credentials are encrypted at rest"
+      section. Doesn't change the trust model beyond disk-at-rest — flock
+      itself still has no auth (see below).
 - [ ] Real video preview (NDI/SRT frame grab) replacing the placeholder
 - [ ] Auth for flock itself, TLS, multi-user, if ever run beyond a trusted
       LAN

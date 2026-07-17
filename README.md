@@ -118,6 +118,10 @@ Working:
 - Subnet-probe + mDNS discovery scan + manual add/edit/remove
 - `docker-compose.yml` with host networking (needed for the subnet probe and
   mDNS alike)
+- Device passwords are encrypted at rest (AES-256-GCM, auto-generated key
+  file) — `registry.json` itself never holds a plaintext password, and a
+  pre-existing plaintext registry.json migrates transparently on its next
+  save. See [docs/architecture.md](docs/architecture.md#credentials-are-encrypted-at-rest-transparently)
 - SRT decode support (the operator's real Play gained this after a firmware
   update mid-development): full data model, mock defaults, and frontend
   toggle all built and round-trip-verified against `device-mock` — but

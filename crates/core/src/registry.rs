@@ -2,28 +2,49 @@ use std::collections::{BTreeMap, HashMap};
 use std::path::PathBuf;
 use std::sync::RwLock;
 
+use crate::crypto::CredentialCipher;
 use crate::device::{Device, DeviceId};
 
 /// Durable store of device metadata. Persisted as a single JSON file - no
 /// database, matching the scale of a LAN device list and mirroring
 /// srt-router's optional flat-file persistence rather than introducing new
 /// infrastructure.
+///
+/// Every in-memory `Device` holds its BirdUI password in plain text - that's
+/// what `DeviceClient` implementations and the rest of the app expect. Only
+/// the on-disk JSON is encrypted, via `cipher`, at the `save`/`load_or_new`
+/// boundary - see `crypto.rs`.
 pub struct Registry {
     path: PathBuf,
     devices: RwLock<HashMap<DeviceId, Device>>,
+    cipher: CredentialCipher,
 }
 
 impl Registry {
     /// Loads devices from `path` if it exists, otherwise starts empty. The
-    /// file is created on first write.
+    /// file is created on first write. The encryption key lives in
+    /// `credentials.key` next to `path`, generated on first run.
     pub fn load_or_new(path: PathBuf) -> anyhow::Result<Self> {
+        let key_path = path
+            .parent()
+            .map(|p| p.join("credentials.key"))
+            .unwrap_or_else(|| PathBuf::from("credentials.key"));
+        let cipher = CredentialCipher::load_or_create(&key_path)?;
+
         let devices = if path.exists() {
             let raw = std::fs::read_to_string(&path)?;
             if raw.trim().is_empty() {
                 HashMap::new()
             } else {
                 let list: Vec<Device> = serde_json::from_str(&raw)?;
-                list.into_iter().map(|d| (d.id, d)).collect()
+                list.into_iter()
+                    .map(|mut d| {
+                        if let Some(stored) = d.credentials.password.take() {
+                            d.credentials.password = Some(cipher.decrypt_or_pass_through(&stored)?);
+                        }
+                        Ok::<_, anyhow::Error>((d.id, d))
+                    })
+                    .collect::<anyhow::Result<HashMap<_, _>>>()?
             }
         } else {
             HashMap::new()
@@ -31,12 +52,23 @@ impl Registry {
         Ok(Self {
             path,
             devices: RwLock::new(devices),
+            cipher,
         })
     }
 
     fn save(&self) -> anyhow::Result<()> {
-        let devices = self.devices.read().expect("registry lock poisoned");
-        let list: Vec<&Device> = devices.values().collect();
+        let mut list: Vec<Device> = self
+            .devices
+            .read()
+            .expect("registry lock poisoned")
+            .values()
+            .cloned()
+            .collect();
+        for device in &mut list {
+            if let Some(plaintext) = &device.credentials.password {
+                device.credentials.password = Some(self.cipher.encrypt(plaintext)?);
+            }
+        }
         let raw = serde_json::to_string_pretty(&list)?;
         if let Some(parent) = self.path.parent() {
             std::fs::create_dir_all(parent)?;
@@ -135,6 +167,58 @@ mod tests {
         }
         let reloaded = Registry::load_or_new(path).unwrap();
         assert_eq!(reloaded.list().len(), 1);
+    }
+
+    #[test]
+    fn password_never_touches_disk_in_plaintext() {
+        let dir = tempdir();
+        let path = dir.join("registry.json");
+        let mut device = sample_device("cam-1", &["stage"]);
+        device.credentials.password = Some("super-secret".to_string());
+
+        let registry = Registry::load_or_new(path.clone()).unwrap();
+        registry.upsert(device).unwrap();
+
+        let raw = std::fs::read_to_string(&path).unwrap();
+        assert!(!raw.contains("super-secret"));
+
+        // In-memory access still sees the plaintext password unchanged.
+        let devices = registry.list();
+        assert_eq!(
+            devices[0].credentials.password.as_deref(),
+            Some("super-secret")
+        );
+
+        // And it round-trips correctly across a reload against the same key.
+        let reloaded = Registry::load_or_new(path).unwrap();
+        assert_eq!(
+            reloaded.list()[0].credentials.password.as_deref(),
+            Some("super-secret")
+        );
+    }
+
+    #[test]
+    fn migrates_a_legacy_plaintext_registry_on_next_save() {
+        let dir = tempdir();
+        let path = dir.join("registry.json");
+        let mut device = sample_device("cam-1", &["stage"]);
+        device.credentials.password = Some("old-plaintext".to_string());
+        std::fs::write(&path, serde_json::to_string(&vec![&device]).unwrap()).unwrap();
+
+        // Loading a pre-encryption registry.json still yields the plaintext
+        // password in memory...
+        let registry = Registry::load_or_new(path.clone()).unwrap();
+        assert_eq!(
+            registry.list()[0].credentials.password.as_deref(),
+            Some("old-plaintext")
+        );
+
+        // ...and the very next save encrypts it going forward.
+        registry
+            .upsert(registry.list().into_iter().next().unwrap())
+            .unwrap();
+        let raw = std::fs::read_to_string(&path).unwrap();
+        assert!(!raw.contains("old-plaintext"));
     }
 
     fn tempdir() -> PathBuf {

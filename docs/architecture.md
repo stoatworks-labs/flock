@@ -25,6 +25,33 @@ actually reached.
   `DeviceClient`. The binary picks the provider at startup from
   `Config::provider` (`"mock"` or `"http"`).
 
+## Credentials are encrypted at rest, transparently
+
+Every `Device.credentials.password` is plaintext *in memory* — that's what
+`DeviceClient` implementations and the API layer's `Device::redacted()` (for
+responses) both expect, and changing that would ripple everywhere. What
+changed is what `Registry` writes to disk: `crates/core/src/crypto.rs`
+encrypts each password with AES-256-GCM right at the `save()`/`load_or_new()`
+boundary, so `registry.json` itself never holds a plaintext password,
+whether that file ends up in a backup, a synced folder, or a support
+bundle.
+
+- The key is generated on first run and stored in `credentials.key`, a
+  sibling of `registry.json` (so `docker-compose`'s existing registry
+  volume mount covers it with no config changes) - chmod `600` on unix.
+  Losing this file makes existing stored passwords undecryptable; the
+  registry itself still loads fine; the operator just has to re-enter
+  passwords.
+- Each encrypted value is stored as `flock-enc-v1:<nonce-hex>:<ciphertext-hex>`.
+  That explicit prefix is what makes a **legacy plaintext `registry.json`
+  written before this existed** load correctly with zero migration step:
+  `decrypt_or_pass_through` just returns anything without the prefix
+  unchanged, and the very next save encrypts it going forward.
+- This only covers **credentials at rest** — the existing API-layer
+  redaction (`Device::redacted()`, still showing `"********"` to the
+  frontend) and the LAN-trust model (no auth on flock itself yet, see
+  Phase 3 in docs/roadmap.md) are unrelated, separate concerns.
+
 ## Confirmed against real hardware
 
 Everything in this section was verified by logging into an actual BirdDog

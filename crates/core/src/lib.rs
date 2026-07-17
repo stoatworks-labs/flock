@@ -1,5 +1,6 @@
 pub mod app_settings;
 pub mod client;
+mod crypto;
 pub mod device;
 pub mod registry;
 pub mod settings;
