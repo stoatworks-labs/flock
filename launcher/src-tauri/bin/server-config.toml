@@ -24,3 +24,11 @@ seed_demo_devices = true
 # scraping - see docs/architecture.md for what's confirmed against real
 # firmware and what's still unconfirmed).
 provider = "mock"
+
+# Unset (default) means flock's own web UI has no login gate at all -
+# anyone who can reach it on the LAN has full control, matching BirdUI's
+# own trusted-LAN model. Set this to require a single shared password
+# before flock's UI/API do anything - see docs/architecture.md's "flock's
+# own auth" section. This is unrelated to each device's own BirdUI
+# password (set per-device, and always encrypted at rest regardless).
+# admin_password = "change-me"
