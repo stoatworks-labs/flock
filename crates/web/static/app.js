@@ -404,6 +404,18 @@
     const onchange = opts.onchange ? `onchange="${escapeAttr(opts.onchange)}"` : "";
     return field(labelFor(id), `<select id="f-${id}" ${onchange}>${optionsHtml}</select>`);
   }
+  // Like selectField, but for the rare case where the real device's option
+  // *value* isn't fit for display (e.g. SRT's encryption key length is a
+  // numeric key size, not a name) - pairs is [[value, label], ...].
+  function labeledSelectField(id, value, pairs, opts = {}) {
+    const optionsHtml = opts.batch
+      ? `<option value="" selected>— leave unchanged —</option>` +
+        pairs.map(([v, l]) => `<option value="${escapeAttr(v)}">${escapeHtml(l)}</option>`).join("")
+      : pairs
+          .map(([v, l]) => `<option value="${escapeAttr(v)}" ${v === (value ?? "") ? "selected" : ""}>${escapeHtml(l)}</option>`)
+          .join("");
+    return field(labelFor(id), `<select id="f-${id}">${optionsHtml}</select>`);
+  }
   function labelFor(id) {
     return id.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
   }
@@ -522,13 +534,13 @@
           ${textField("failover_source", s.failover_source, { ...opts, list: "ndi-sources-datalist" })}
         </div>
         <div class="field-grid" id="srt-source-fields">
-          ${selectField("srt_connection_type", opts.batch ? "" : s.srt_connection_type || "caller", ["caller", "listener"], opts)}
+          ${selectField("srt_connection_type", opts.batch ? "" : s.srt_connection_type || "caller", ["caller", "listener", "rendezvous"], opts)}
           ${textField("srt_stream_name", s.srt_stream_name, opts)}
           ${textField("srt_ip_address", s.srt_ip_address, opts)}
           ${numberField("srt_port", s.srt_port, opts)}
           ${numberField("srt_latency_ms", s.srt_latency_ms, opts)}
           ${checkboxField("srt_encryption_enabled", s.srt_encryption_enabled, opts)}
-          ${textField("srt_encryption_key_length", s.srt_encryption_key_length, opts)}
+          ${labeledSelectField("srt_encryption_key_length", opts.batch ? null : s.srt_encryption_key_length, [["", "None"], ["32", "AES-256"], ["24", "AES-192"], ["16", "AES-128"]], opts)}
           ${textField("srt_passphrase", s.srt_passphrase, opts)}
           ${textField("srt_stream_id", s.srt_stream_id, opts)}
         </div>

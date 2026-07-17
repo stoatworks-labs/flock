@@ -41,7 +41,9 @@ const NONE_SOURCE: &str = "None";
 
 pub struct HttpDeviceClient {
     base_url: String,
+    host: String,
     source_list_url: String,
+    srt_write_url: String,
     password: String,
     http: reqwest::Client,
     logged_in: AtomicBool,
@@ -59,7 +61,9 @@ impl HttpDeviceClient {
             .build()?;
         Ok(Self {
             base_url: format!("http://{}", device.host),
+            host: device.host.clone(),
             source_list_url: format!("http://{}:{SOURCE_LIST_PORT}/List", device.host),
+            srt_write_url: format!("http://{}:{SOURCE_LIST_PORT}/writesrtsource", device.host),
             password: device
                 .credentials
                 .password
@@ -82,6 +86,55 @@ impl HttpDeviceClient {
             .await?;
         let map: HashMap<String, String> = serde_json::from_str(&text)?;
         Ok(map)
+    }
+
+    /// Attempts to apply an SRT decode source. Reverse engineered from
+    /// BirdUI's own inline JS (`postsrtJsonFile()` in `/videoset`'s HTML):
+    /// the "Stream Name"/"IP Address"/"Port"/etc. fields under the SRT panel
+    /// are confirmed to be staging-only for building a "Connection URL"
+    /// string client-side, not a working write path (see the doc comment on
+    /// `set_decode_settings`) - the real apply is `POST {StreamName,
+    /// StreamIP}` (form-encoded - a variable named `outputData` sits right
+    /// next to the real `$.ajax` call looking like a JSON body, but is dead
+    /// code, never actually passed to the request) to a *separate* JSON API
+    /// on port 8080 (the same port `fetch_source_list` already uses for
+    /// NDI's `/List`).
+    ///
+    /// **Unconfirmed / best-effort**: correctly derived from the device's
+    /// own JS, but this specific endpoint (`:8080/writesrtsource`) was
+    /// observed live to accept the TCP connection and then never respond at
+    /// all (not even an error) until timeout - `:8080/writesrt` (meant to
+    /// list already-applied sources) 404s on the same device, suggesting
+    /// this whole mechanism may need some precondition this codebase hasn't
+    /// identified yet (or may be a firmware bug on this specific unit).
+    /// Given that, this call is deliberately non-fatal and short-timeout: a
+    /// failure here must never block or fail the rest of a decode-settings
+    /// save (screensaver/colour-space/audio/tally and the NDI/SRT toggle all
+    /// use the confirmed-working `/videoset` path and should never be held
+    /// hostage by this one unconfirmed piece).
+    async fn apply_srt_source(&self, settings: &DecodeSettings) {
+        let Some(name) = settings
+            .srt_stream_name
+            .as_deref()
+            .filter(|s| !s.is_empty())
+        else {
+            return;
+        };
+        let uri = build_srt_connection_url(settings, &self.host);
+        let request = self
+            .http
+            .post(&self.srt_write_url)
+            .form(&[("StreamName", name), ("StreamIP", &uri)])
+            .send();
+        match tokio::time::timeout(Duration::from_secs(5), request).await {
+            Ok(Ok(_)) => {}
+            Ok(Err(e)) => tracing::warn!("SRT source apply request failed: {e:#}"),
+            Err(_) => tracing::warn!(
+                "SRT source apply to {} timed out after 5s - see the doc comment on \
+                 apply_srt_source, this endpoint has been unreliable in testing",
+                self.srt_write_url
+            ),
+        }
     }
 
     async fn login(&self) -> anyhow::Result<()> {
@@ -223,6 +276,38 @@ fn resolve_source(wanted: &Option<String>, sources: &HashMap<String, String>) ->
     }
 }
 
+/// Mirrors BirdUI's own client-side "Connection URL" builder byte-for-byte
+/// (see `apply_srt_source`'s doc comment) - confirmed from its inline JS,
+/// which branches on connection type and whether encryption is on. Notably:
+/// `listener` mode uses the *device's own* IP, not the typed-in one (it's
+/// the one listening for an incoming connection); only `caller` mode
+/// includes `streamid`.
+fn build_srt_connection_url(settings: &DecodeSettings, device_host: &str) -> String {
+    let ip = if settings.srt_connection_type == "listener" {
+        device_host
+    } else {
+        settings.srt_ip_address.as_deref().unwrap_or("")
+    };
+    let port = settings.srt_port.map(|p| p.to_string()).unwrap_or_default();
+    let mut url = format!(
+        "{ip}:{port}?mode={}&latency={}",
+        settings.srt_connection_type, settings.srt_latency_ms
+    );
+    if settings.srt_encryption_enabled {
+        let keylen = settings.srt_encryption_key_length.as_deref().unwrap_or("0");
+        url.push_str(&format!("&pbkeylen={keylen}"));
+        if let Some(passphrase) = &settings.srt_passphrase {
+            url.push_str(&format!("&passphrase={passphrase}"));
+        }
+    }
+    if settings.srt_connection_type == "caller" {
+        if let Some(stream_id) = &settings.srt_stream_id {
+            url.push_str(&format!("&streamid={stream_id}"));
+        }
+    }
+    url
+}
+
 #[async_trait]
 impl DeviceClient for HttpDeviceClient {
     async fn status(&self) -> anyhow::Result<DeviceStatus> {
@@ -334,17 +419,17 @@ impl DeviceClient for HttpDeviceClient {
         let fields = form::scrape_form_fields(&html);
         let get = |k: &str| fields.get(k).cloned().unwrap_or_default();
         Ok(DecodeSettings {
-            // SRT support only appeared after a firmware update the user
-            // applied mid-development; the device has been unreachable
-            // (different subnet) since, so every `dec0_srt_*` / `decode_
-            // SourceType` field name below is a best-guess from a BirdUI
-            // screenshot's visible labels, NOT confirmed against real HTML
-            // like the NDI/network fields above are. `get()` on a wrong key
-            // just yields an empty string (harmless fallback to the default
-            // shown here) rather than an error, so this degrades gracefully
-            // if the guesses are wrong - see docs/architecture.md.
+            // SRT support (and a third, unsupported "CloudConnect" source
+            // type flock doesn't model) appeared after a firmware update -
+            // confirmed live against the real field names below once the
+            // device came back on the LAN. `decode_SourceSelection`'s real
+            // values are "NDI"/"CloudConnect"/"SRT"; flock's own dropdown
+            // only offers NDI/SRT, so a device actually in CloudConnect mode
+            // won't show correctly selected here - out of scope, not a
+            // corruption risk (get()-on-wrong-key still can't happen now
+            // that these are confirmed).
             source_type: {
-                let v = get("decode_SourceType");
+                let v = get("decode_SourceSelection");
                 if v.is_empty() {
                     "NDI".to_string()
                 } else {
@@ -358,25 +443,50 @@ impl DeviceClient for HttpDeviceClient {
             // device's own :8080/List just to populate a picker.
             available_sources: vec![],
             failover_source: none_if_placeholder(get("dec0_fo_source_name")),
+            // `conntypemode`'s real options are "caller"/"listener"/
+            // "rendezvous" - confirmed live; flock's own dropdown offers all
+            // three (see app.js).
             srt_connection_type: {
-                let v = get("dec0_srt_connection_type");
+                let v = get("conntypemode");
                 if v.is_empty() {
                     "caller".to_string()
                 } else {
                     v
                 }
             },
-            srt_stream_name: none_if_placeholder(get("dec0_srt_stream_name")),
-            srt_ip_address: none_if_placeholder(get("dec0_srt_ip_address")),
-            srt_port: get("dec0_srt_port").parse().ok(),
-            srt_latency_ms: get("dec0_srt_latency").parse().unwrap_or(120),
-            srt_encryption_enabled: get("dec0_srt_encryption") == "SRTEncEn",
-            srt_encryption_key_length: none_if_placeholder(get("dec0_srt_enc_key_length")),
-            srt_passphrase: none_if_placeholder(get("dec0_srt_passphrase")),
-            srt_stream_id: none_if_placeholder(get("dec0_srt_stream_id")),
-            // Device-side "SRT Sources" refresh/pick flow - the button/list
-            // field names for that are unconfirmed (see the doc comment on
-            // `DecodeSettings::srt_available_sources`), so not scraped yet.
+            // `StreamName` is confirmed but NOT decode-exclusive: the
+            // real page's hidden (`display:none`, dead on Play hardware)
+            // Encode tab reuses the exact same field name for its own NDI
+            // transmit stream name. Since `scrape_form_fields` flattens
+            // every form on the page into one map, writing this key
+            // technically also touches that dead field - checked live that
+            // it has no observable effect (Encode's own copy is an inert
+            // Go-template nil-render placeholder on Play, never a real
+            // configured value, and Play's actual NDI identity comes from
+            // `net_avahi`/Dashboard's `vid_str_name`, not this field).
+            srt_stream_name: none_if_placeholder(get("StreamName")),
+            srt_ip_address: none_if_placeholder(get("IPAddress")),
+            srt_port: get("Port").parse().ok(),
+            srt_latency_ms: get("latency").parse().unwrap_or(120),
+            srt_encryption_enabled: get("Encryption") == "true",
+            // Real values are numeric-coded key *lengths*, not named
+            // options: "0" (shown as "None"), "16" (AES-128), "24"
+            // (AES-192), "32" (AES-256) - "0" is treated the same as
+            // absent/unset, matching how the device's own UI shows it.
+            srt_encryption_key_length: {
+                let v = get("pbkeylen");
+                if v.is_empty() || v == "0" {
+                    None
+                } else {
+                    Some(v)
+                }
+            },
+            srt_passphrase: none_if_placeholder(get("passphrase")),
+            srt_stream_id: none_if_placeholder(get("streamid")),
+            // Device-side "SRT Sources" refresh (`UPDATE SRT SOURCES`) is a
+            // JS-driven async call (`Add_Dest_Data()`), not a plain form
+            // field/button submit like the NDI "Apply Source" flow - not
+            // wired up; still unconfirmed what that request looks like.
             srt_available_sources: vec![],
             // BirdUI's own JS reads this same hidden marker (not the
             // `selected` attribute) for the page's current value - see
@@ -418,55 +528,24 @@ impl DeviceClient for HttpDeviceClient {
             "dec0_change_source".into(),
         );
 
-        // Best-guess SRT field names (see the matching comment in
-        // `decode_settings` above) - unconfirmed against real hardware.
-        // Sent unconditionally alongside the NDI fields since BirdUI's own
-        // read-modify-write pattern already round-trips every field the page
-        // knows about regardless of which source_type is active; if these
-        // keys don't match the real form, the server should just ignore the
-        // unrecognized fields the same way it ignores flock's own added
-        // fields for any other unmodeled setting.
-        fields.insert("decode_SourceType".into(), settings.source_type);
+        // Confirmed live: `decode_SourceSelection` (NDI/SRT toggle) does
+        // take effect via a plain `/videoset` field POST like the rest of
+        // this form. The SRT panel's own manual-entry fields
+        // (StreamName/IPAddress/Port/latency/Encryption/pbkeylen/
+        // passphrase/streamid/conntypemode) do NOT - also confirmed live,
+        // the hard way: posting `StreamName` here silently updated the
+        // *encode* tab's hidden NDI stream name field instead of doing
+        // anything to the decode side, which never changed. Those fields
+        // turned out to be pure client-side staging for BirdUI's own
+        // "Connection URL" preview; applying an SRT source is a completely
+        // separate mechanism - see `apply_srt_source`, called below.
         fields.insert(
-            "dec0_srt_connection_type".into(),
-            settings.srt_connection_type,
+            "decode_SourceSelection".into(),
+            settings.source_type.clone(),
         );
-        fields.insert(
-            "dec0_srt_stream_name".into(),
-            settings.srt_stream_name.unwrap_or_default(),
-        );
-        fields.insert(
-            "dec0_srt_ip_address".into(),
-            settings.srt_ip_address.unwrap_or_default(),
-        );
-        fields.insert(
-            "dec0_srt_port".into(),
-            settings.srt_port.map(|p| p.to_string()).unwrap_or_default(),
-        );
-        fields.insert(
-            "dec0_srt_latency".into(),
-            settings.srt_latency_ms.to_string(),
-        );
-        fields.insert(
-            "dec0_srt_encryption".into(),
-            if settings.srt_encryption_enabled {
-                "SRTEncEn".into()
-            } else {
-                "SRTEncDis".into()
-            },
-        );
-        fields.insert(
-            "dec0_srt_enc_key_length".into(),
-            settings.srt_encryption_key_length.unwrap_or_default(),
-        );
-        fields.insert(
-            "dec0_srt_passphrase".into(),
-            settings.srt_passphrase.unwrap_or_default(),
-        );
-        fields.insert(
-            "dec0_srt_stream_id".into(),
-            settings.srt_stream_id.unwrap_or_default(),
-        );
+        if settings.source_type == "SRT" {
+            self.apply_srt_source(&settings).await;
+        }
 
         fields.insert("decode_ScreenSaverMode".into(), settings.screensaver_mode);
         fields.insert("decode_ColorSpace".into(), settings.color_space);

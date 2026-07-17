@@ -74,6 +74,18 @@
       the same device that was failing repeatedly loaded status
       successfully afterward.
 
+- [x] **SRT decode support, field names confirmed live** after a firmware
+      update added SRT to a previously-NDI-only device. Confirmed the real
+      `/videoset` field names, and found (the hard way - see
+      docs/architecture.md's "SRT decode support" section) that the SRT
+      panel's own manual-entry fields aren't a working write path at all -
+      the real apply mechanism is a separate JSON API on port 8080, which
+      itself was observed to be unreliable (times out) in live testing.
+      Switching NDI/SRT mode is confirmed working; actually applying a
+      manually-typed SRT connection is implemented but unconfirmed to
+      succeed, and deliberately non-fatal so it can never block the rest of
+      a decode-settings save.
+
 Deliberately **not** done, and why:
 - **Live WebSocket status** (`ws://<ip>:6790`) isn't wired up —
   `status()` polls and scrapes `/dashboard` per call instead. Works, just

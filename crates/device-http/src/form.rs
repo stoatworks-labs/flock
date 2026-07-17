@@ -108,6 +108,7 @@ mod tests {
     const DASHBOARD_HTML: &str = include_str!("../tests/fixtures/dashboard.html");
     const VIDEOSET_AFTER_APPLY_HTML: &str =
         include_str!("../tests/fixtures/videoset_after_apply.html");
+    const VIDEOSET_SRT_HTML: &str = include_str!("../tests/fixtures/videoset_srt.html");
 
     #[test]
     fn scrapes_source_name_and_screensaver_marker_after_a_real_apply() {
@@ -119,6 +120,24 @@ mod tests {
         assert_eq!(
             scrape_attr_by_id(VIDEOSET_AFTER_APPLY_HTML, "dec1_sel", "value").as_deref(),
             Some("BlackSS")
+        );
+    }
+
+    #[test]
+    fn flat_scrape_of_the_srt_page_has_the_stream_name_collision() {
+        // /videoset's hidden (display:none, dead on Play hardware) Encode
+        // tab reuses the literal field name "StreamName" for its own NDI
+        // transmit name - a completely different setting from the SRT
+        // decode panel's own "Stream Name" field. A flat scrape can't tell
+        // them apart (this is exactly why `set_decode_settings` no longer
+        // writes this key at all - confirmed live that posting it lands on
+        // the encode field regardless of intent; see
+        // HttpDeviceClient::apply_srt_source for the real mechanism).
+        let fields = scrape_form_fields(VIDEOSET_SRT_HTML);
+        assert!(fields.contains_key("StreamName"));
+        assert_eq!(
+            fields.get("decode_SourceSelection").map(String::as_str),
+            Some("SRT")
         );
     }
 

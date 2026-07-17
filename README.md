@@ -123,20 +123,23 @@ Working:
   pre-existing plaintext registry.json migrates transparently on its next
   save. See [docs/architecture.md](docs/architecture.md#credentials-are-encrypted-at-rest-transparently)
 - SRT decode support (the operator's real Play gained this after a firmware
-  update mid-development): full data model, mock defaults, and frontend
-  toggle all built and round-trip-verified against `device-mock` — but
-  `flock-device-http`'s real HTML field names for it are a **best guess**
-  from a screenshot, not yet confirmed live (the device moved to a different
-  subnet before it could be re-scraped) — see
-  [docs/architecture.md](docs/architecture.md#srt-decode-support---best-guess-field-mapping-not-yet-confirmed)
+  update mid-development): switching a device between NDI/SRT source mode is
+  confirmed working live, including the real HTML field names. Actually
+  applying a manually-typed SRT connection is a separate mechanism (a JSON
+  API on port 8080, reverse engineered from BirdUI's own JS) that's
+  implemented but was observed unreliable (times out) in live testing —
+  deliberately non-fatal, so it can never block the rest of a decode save —
+  see [docs/architecture.md](docs/architecture.md#srt-decode-support---confirmed-live-apply-mechanism-partially-unreliable)
 - Optional auth for flock itself — off by default (unchanged trusted-LAN
   behavior), but setting `admin_password` in `config/flock.toml` gates the
-  whole UI/API behind a single shared login. See
+  whole UI/API behind a single shared login, with brute-force lockout on the
+  login endpoint. See
   [docs/architecture.md](docs/architecture.md#flocks-own-auth-is-optional-off-by-default)
 
 Not yet done:
 - Live video preview is a placeholder (needs an actual NDI/SRT frame grab)
-- Real HTML field names for SRT decode settings (see above)
+- Actually applying a manually-entered SRT source — see above, the real
+  device-side mechanism hasn't behaved reliably in testing yet
 
 ## Quick start
 

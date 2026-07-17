@@ -189,52 +189,71 @@ with.
     every decode save re-applies the source (a harmless no-op if it's
     unchanged, confirmed live, but worth knowing).
 
-## SRT decode support - best-guess field mapping, not yet confirmed
+## SRT decode support - confirmed live, apply mechanism partially unreliable
 
 The firmware `1.0.18` unit this project was originally verified against had
-**no SRT UI at all** in `/videoset` - `DecodeSettings` only modeled NDI
-source/failover. After a firmware update applied mid-development, the
-operator's real Play started showing a second "Source Selection" mode (NDI
-vs SRT) with its own connection-type/stream-name/IP/port/latency/encryption/
-passphrase/stream-ID fields and an "UPDATE SRT SOURCES" device-side picker
-flow - captured only as a screenshot of BirdUI's rendered labels, not as
-fetched HTML, because the device became unreachable (moved to a different
-subnet) before it could be re-scraped.
+**no SRT UI at all** in `/videoset`. A firmware update applied mid-
+development added a second "Source Selection" mode (NDI vs SRT vs a third,
+unmodeled "CloudConnect") with its own connection-type/stream-name/IP/port/
+latency/encryption/passphrase/stream-ID fields. Once the device was reachable
+again, every field name below was confirmed against real `/videoset` HTML
+(`crates/device-http/tests/fixtures/videoset_srt.html`) - and live testing
+turned up two real, non-obvious problems along the way.
 
-What this means concretely for `crates/core/src/settings.rs`'s
-`DecodeSettings` and `crates/device-http/src/lib.rs`:
+**Confirmed field names** (`decode_settings()`/`set_decode_settings()` in
+`crates/device-http/src/lib.rs`): `decode_SourceSelection` ("NDI"/
+"CloudConnect"/"SRT" - flock only models the first and third),
+`conntypemode` ("caller"/"listener"/"rendezvous"), `StreamName`,
+`IPAddress`, `Port`, `latency`, `Encryption` ("true"/"false"), `pbkeylen`
+(numeric key size as a string: `"0"`=None/unset, `"16"`=AES-128,
+`"24"`=AES-192, `"32"`=AES-256), `passphrase`, `streamid`.
 
-- `source_type` ("NDI"/"SRT") and every `srt_*` field's real HTML `name`
-  attribute is a **guess** (`decode_SourceType`, `dec0_srt_connection_type`,
-  `dec0_srt_stream_name`, `dec0_srt_ip_address`, `dec0_srt_port`,
-  `dec0_srt_latency`, `dec0_srt_encryption`, `dec0_srt_enc_key_length`,
-  `dec0_srt_passphrase`, `dec0_srt_stream_id`), chosen to follow the same
-  naming convention as the confirmed NDI/network fields above, not read from
-  real markup.
-- `decode_settings()` degrades gracefully if these guesses are wrong: a
-  missing key just yields `""` from `scrape_form_fields`, which every field
-  above falls back to a sane default for (e.g. `"caller"` for connection
-  type, `120` for latency) rather than erroring.
-- `set_decode_settings()` sends these guessed fields unconditionally
-  alongside the confirmed NDI ones, following the existing read-modify-write
-  pattern (unrecognized POST fields should be harmless server-side, the same
-  assumption every other unmodeled real field already relies on) - but this
-  is unverified against actual hardware and must not be treated as working
-  until it's re-tested live.
-- The device-side "SRT Sources" refresh/pick flow (mirroring the NDI
-  "Apply Source" mechanism `dec0_change_source_button` gates) is **not**
-  implemented - `srt_available_sources` is always empty. Its button/field
-  names are unknown; wiring it up requires live access to the updated
-  firmware's actual `/videoset` HTML.
-- `crates/device-mock` and the frontend (`crates/web/static/app.js`'s
-  `decodeForm`/`collectDecodeForm`, toggled via `toggleSourceType()`) are
-  fully implemented and verified against the mock provider - only the real
-  HTTP field-name mapping is unconfirmed.
+**Problem 1 - `StreamName` collides with a hidden, dead field.** `/videoset`'s
+Encode tab (`display:none` on Play - confirmed dead/unused, per "Confirmed
+against real hardware" above) reuses the exact same field name for its own
+NDI transmit stream name. `scrape_form_fields` flattens the whole page into
+one map with no per-form scoping, so this collision is invisible to a read
+(decode's own value happens to win, by document-order luck) but **not** to a
+write: confirmed live, posting a value under `StreamName` updates the dead
+Encode field instead of the SRT decode field, which never changes. Fix:
+`set_decode_settings` no longer writes `StreamName` (or any of the other SRT
+manual-entry fields - see Problem 2, they don't work either) to `/videoset`
+at all.
 
-Next time the device is reachable: fetch a real `/videoset` page with SRT
-mode selected, diff its field names against the guesses above, add a
-`videoset_srt.html` fixture under `crates/device-http/tests/fixtures/`, and
-update this section from "best-guess" to "confirmed".
+**Problem 2 - the SRT panel's manual-entry fields aren't a working write
+path in the first place.** Reverse engineering BirdUI's own inline JS
+(`/videoset`'s `postsrtJsonFile()`/`Add_Dest_Data()`) showed that "Stream
+Name"/"IP Address"/"Port"/etc. are pure client-side staging for building a
+"Connection URL" preview string - the *actual* apply is a separate call:
+`POST {StreamName, StreamIP}` (form-encoded; a variable named `outputData`
+sits right next to the real `$.ajax` call looking like a JSON body, but is
+dead code, never passed to the request) to `http://<device-ip>:8080/
+writesrtsource` - a JSON API on the same port `fetch_source_list` already
+uses for NDI's `/List`. `HttpDeviceClient::apply_srt_source` implements this,
+including `build_srt_connection_url` which mirrors BirdUI's own URL-building
+branches exactly (`listener` mode uses the device's own IP, not the typed-in
+one; only `caller` mode includes `streamid`; `pbkeylen`/`passphrase` are
+only appended when encryption is on).
+
+**This apply call is unconfirmed to actually work, and is deliberately
+non-fatal.** Live testing: `:8080/writesrtsource` accepted the TCP
+connection and then never responded at all, timing out; `:8080/writesrt`
+(meant to list already-applied SRT sources, for a future `srt_available_
+sources`) 404s on the same device. Whether this is a firmware bug, a missing
+precondition this codebase hasn't identified, or something else entirely is
+unknown. Given that, `apply_srt_source` is wrapped in a 5-second
+`tokio::time::timeout` and never propagates an error - a failure here only
+logs a `tracing::warn!` and must never block or fail the rest of a
+decode-settings save (confirmed live: `decode_SourceSelection`, screensaver/
+colour-space/audio/tally all still save correctly and quickly even when the
+SRT apply call times out).
+
+**Net effect on flock's own SRT support right now**: switching a device
+between NDI/SRT mode works and is confirmed. Manually typing in SRT
+connection details and having them actually take effect on the device is
+**not yet working** - the mechanism is understood and implemented, but the
+device itself isn't cooperating in testing. `srt_available_sources` remains
+unimplemented (the `:8080/writesrt` 404 blocks it too, for now).
 
 ## Two unrelated kinds of discovery - keep them separate
 
