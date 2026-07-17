@@ -43,11 +43,17 @@ async fn main() -> anyhow::Result<()> {
     let app_settings =
         flock_core::AppSettingsStore::load_or_new(config.app_settings_path.clone().into())?;
 
+    if config.admin_password.is_some() {
+        tracing::info!("admin_password is set - flock's own web UI requires login");
+    }
+
     let state = AppState {
         registry: Arc::new(registry),
         provider,
         discovery: Arc::new(Discovery::new()?),
         app_settings: Arc::new(app_settings),
+        admin_password: config.admin_password.clone(),
+        sessions: Arc::new(std::sync::RwLock::new(std::collections::HashSet::new())),
     };
 
     let app = flock_web::app(state);

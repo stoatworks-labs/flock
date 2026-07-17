@@ -1,10 +1,21 @@
 <title>flock</title>
 <link rel="stylesheet" href="/style.css">
 
-<div id="app">
+<div id="login-screen" class="login-screen" hidden>
+  <form id="login-form" class="login-form stacked-form">
+    <div class="login-brand">flock</div>
+    <p class="login-tagline">Sign in to continue</p>
+    <label>Password<input id="login-password" type="password" required autocomplete="current-password"></label>
+    <button type="submit" class="btn btn-primary">Sign in</button>
+    <div class="login-error" id="login-error"></div>
+  </form>
+</div>
+
+<div id="app" hidden>
   <header id="topbar">
     <span class="brand">flock</span>
     <span class="tagline">multi-device BirdDog Play control</span>
+    <button id="logout-btn" class="btn logout-btn" hidden>Log out</button>
     <span id="conn-indicator" class="conn-indicator" title="Live connection status">●</span>
   </header>
 

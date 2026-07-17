@@ -49,8 +49,46 @@ bundle.
   unchanged, and the very next save encrypts it going forward.
 - This only covers **credentials at rest** — the existing API-layer
   redaction (`Device::redacted()`, still showing `"********"` to the
-  frontend) and the LAN-trust model (no auth on flock itself yet, see
-  Phase 3 in docs/roadmap.md) are unrelated, separate concerns.
+  frontend) and flock's own auth (below) are unrelated, separate concerns.
+
+## flock's own auth is optional, off by default
+
+Every concern above is about a *device's* BirdUI password. This is the
+separate question of who can reach *flock itself* — historically nobody-gated
+at all, matching BirdUI's own trusted-LAN model (whoever's on the LAN has
+full control). `admin_password` in `config/flock.toml` turns on a single
+shared login for flock's own web UI/API, for anyone who wants more than bare
+network trust without standing up real multi-user auth (out of scope for a
+single-operator LAN tool — see Phase 3 in docs/roadmap.md).
+
+- **Off by default** (`Config::admin_password: Option<String>` is `None`) —
+  every route behaves exactly as before. Setting it is the only opt-in step.
+- **One shared password, one session cookie.** `crates/web/src/auth.rs`:
+  `POST /api/login` compares the given password against `admin_password`
+  (constant-time, hand-rolled — cheap enough to not need a dedicated crate)
+  and, on success, hands out a `flock_session` cookie (`HttpOnly`,
+  `SameSite=Strict`) backed by a random token in an in-memory `HashSet`.
+  `POST /api/logout` clears both. There's no per-user account model, no
+  password reset flow, no persistence for sessions — a process restart logs
+  everyone out, which is an acceptable tradeoff for what this is.
+- **Middleware, not per-handler checks.** `crates/web/src/lib.rs::app()`
+  splits routes into two sub-routers: `public` (static frontend, `/health`,
+  `/api/login`, `/api/logout`) and `protected` (everything else — every
+  `/api/*` device/registry/settings route, and `/ws`), with
+  `axum::middleware::from_fn_with_state(state, auth::require_auth)` applied
+  only to `protected` via `route_layer` (which, unlike a blanket `.layer()`,
+  only covers routes defined directly on that router — not ones merged in
+  afterward). `require_auth` is a no-op pass-through whenever
+  `admin_password` is `None`.
+- **Frontend gate is a single 401 check, not a separate "is auth enabled"
+  endpoint.** `app.js`'s `init()` does a bare `GET /api/state`: a 401 means a
+  session is required (show the login screen), anything else means there's
+  no gate at all (start the app immediately) — the same request that would
+  happen anyway doubles as the auth probe.
+- **`Config`'s hand-rolled `Debug` impl redacts `admin_password`** — it's
+  logged at startup (`tracing::info!(?config, ...)`) alongside every other
+  setting, and a derived `Debug` would have put the plaintext password in
+  the log.
 
 ## Confirmed against real hardware
 

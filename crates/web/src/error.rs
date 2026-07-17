@@ -4,6 +4,7 @@ use axum::response::{IntoResponse, Response};
 pub enum ApiError {
     NotFound,
     BadRequest(String),
+    Unauthorized(String),
     Internal(anyhow::Error),
 }
 
@@ -20,6 +21,7 @@ impl IntoResponse for ApiError {
                 (StatusCode::NOT_FOUND, "device not found".to_string()).into_response()
             }
             ApiError::BadRequest(msg) => (StatusCode::BAD_REQUEST, msg).into_response(),
+            ApiError::Unauthorized(msg) => (StatusCode::UNAUTHORIZED, msg).into_response(),
             ApiError::Internal(e) => {
                 tracing::error!("internal error: {e:#}");
                 (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response()

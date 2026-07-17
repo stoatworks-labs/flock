@@ -36,6 +36,27 @@ body {
 }
 
 #app { display: flex; flex-direction: column; height: 100vh; }
+#app[hidden] { display: none; }
+
+.login-screen {
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+}
+.login-screen[hidden] { display: none; }
+.login-form {
+  width: 280px;
+  padding: 2rem;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.login-brand { font-weight: 700; font-size: 1.4rem; color: var(--accent); text-align: center; }
+.login-tagline { color: var(--text-dim); font-size: 0.85rem; text-align: center; margin: 0.25rem 0 1.25rem; }
+.login-error { color: var(--danger); font-size: 0.8rem; min-height: 1.1rem; }
+.logout-btn { margin-left: auto; }
 
 #topbar {
   display: flex;

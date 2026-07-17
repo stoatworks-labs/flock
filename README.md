@@ -129,11 +129,13 @@ Working:
   from a screenshot, not yet confirmed live (the device moved to a different
   subnet before it could be re-scraped) — see
   [docs/architecture.md](docs/architecture.md#srt-decode-support---best-guess-field-mapping-not-yet-confirmed)
+- Optional auth for flock itself — off by default (unchanged trusted-LAN
+  behavior), but setting `admin_password` in `config/flock.toml` gates the
+  whole UI/API behind a single shared login. See
+  [docs/architecture.md](docs/architecture.md#flocks-own-auth-is-optional-off-by-default)
 
 Not yet done:
 - Live video preview is a placeholder (needs an actual NDI/SRT frame grab)
-- No auth on flock itself — meant for a trusted LAN, same trust model as the
-  device's own BirdUI
 - Real HTML field names for SRT decode settings (see above)
 
 ## Quick start
@@ -191,4 +193,3 @@ Full plan in [docs/roadmap.md](docs/roadmap.md). Next up:
 
 - [ ] **Subscribe to the real device's live status WebSocket** instead of polling `/dashboard`.
 - [ ] **Real live video preview** — an actual NDI/SRT frame grab (currently a placeholder).
-- [ ] **Optional auth on flock itself** — currently trusted-LAN only, matching BirdUI's own model.

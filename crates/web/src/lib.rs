@@ -1,3 +1,4 @@
+mod auth;
 mod error;
 mod handlers;
 mod state;
@@ -7,18 +8,28 @@ mod ws;
 pub use flock_discovery::DiscoveredHost;
 pub use state::AppState;
 
+use axum::middleware;
 use axum::routing::{get, post, put};
 use axum::Router;
 
 /// Builds the full flock router: static frontend + REST API + live-push
 /// websocket. Mirrors srt-router's `pub fn app(state) -> Router` shape so
 /// the binary crate owns wiring/config and this crate stays a pure library.
+///
+/// Split into two sub-routers so the auth middleware (`route_layer`, which
+/// only applies to routes defined directly on the router it's called on)
+/// covers everything except the static frontend, `/health`, and
+/// login/logout - those need to stay reachable before a session exists.
 pub fn app(state: AppState) -> Router {
-    Router::new()
+    let public = Router::new()
         .route("/", get(static_assets::index))
         .route("/app.js", get(static_assets::app_js))
         .route("/style.css", get(static_assets::style_css))
         .route("/health", get(|| async { "ok" }))
+        .route("/api/login", post(auth::login))
+        .route("/api/logout", post(auth::logout));
+
+    let protected = Router::new()
         .route("/api/state", get(handlers::get_state))
         .route("/ws", get(ws::ws_handler))
         .route("/api/devices", post(handlers::create_device))
@@ -54,5 +65,10 @@ pub fn app(state: AppState) -> Router {
             "/api/groups/:tag/:tab",
             post(handlers::apply_group_settings),
         )
-        .with_state(state)
+        .route_layer(middleware::from_fn_with_state(
+            state.clone(),
+            auth::require_auth,
+        ));
+
+    public.merge(protected).with_state(state)
 }

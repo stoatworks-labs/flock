@@ -821,9 +821,68 @@
     return escapeHtml(s);
   }
 
+  // ---------- auth ----------
+  //
+  // flock's own login gate is optional (off unless the operator configures
+  // admin_password) - a plain GET on /api/state is enough to tell which
+  // mode we're in: 401 means a session is required, anything else means
+  // there's no gate at all and the app can start immediately.
+
+  async function isAuthed() {
+    const res = await fetch("/api/state");
+    return res.status !== 401;
+  }
+
+  function showLoginScreen() {
+    el("app").hidden = true;
+    el("login-screen").hidden = false;
+    el("login-password").focus();
+  }
+
+  function hideLoginScreen() {
+    el("login-screen").hidden = true;
+    el("app").hidden = false;
+    el("logout-btn").hidden = false;
+  }
+
+  async function submitLogin(e) {
+    e.preventDefault();
+    const errorEl = el("login-error");
+    errorEl.textContent = "";
+    try {
+      await api("/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: el("login-password").value }),
+      });
+      el("login-password").value = "";
+      hideLoginScreen();
+      startApp();
+    } catch (err) {
+      errorEl.textContent = "Incorrect password";
+    }
+  }
+
+  async function logout() {
+    await fetch("/api/logout", { method: "POST" }).catch(() => {});
+    location.reload();
+  }
+
   // ---------- wiring ----------
 
-  function init() {
+  async function init() {
+    el("login-form").addEventListener("submit", submitLogin);
+    el("logout-btn").addEventListener("click", logout);
+
+    if (!(await isAuthed())) {
+      showLoginScreen();
+      return;
+    }
+    hideLoginScreen();
+    startApp();
+  }
+
+  function startApp() {
     const savedTheme = localStorage.getItem("flock-theme") || "dark";
     el("theme-select").value = savedTheme;
     applyTheme(savedTheme);

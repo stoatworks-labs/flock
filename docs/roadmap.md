@@ -97,5 +97,12 @@ Deliberately **not** done, and why:
       section. Doesn't change the trust model beyond disk-at-rest — flock
       itself still has no auth (see below).
 - [ ] Real video preview (NDI/SRT frame grab) replacing the placeholder
-- [ ] Auth for flock itself, TLS, multi-user, if ever run beyond a trusted
-      LAN
+- [x] **Auth for flock itself** — optional (`admin_password` in
+      `config/flock.toml`, unset by default so existing behavior is
+      unchanged). A single shared password gates a session cookie
+      (`crates/web/src/auth.rs`) covering every API/WS route except the
+      static frontend, `/health`, and login/logout themselves. No TLS, no
+      multi-user accounts, no session persistence across a restart — still
+      scoped to "one operator, one trusted-ish LAN," just no longer
+      wide open by default if you want it locked down. See
+      docs/architecture.md's "flock's own auth" section.
