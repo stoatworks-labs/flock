@@ -108,7 +108,21 @@ Deliberately **not** done, and why:
       save. See docs/architecture.md's "Credentials are encrypted at rest"
       section. Doesn't change the trust model beyond disk-at-rest — flock
       itself still has no auth (see below).
-- [ ] Real video preview (NDI/SRT frame grab) replacing the placeholder
+- [x] **Real live video preview - SRT only, not NDI.** flock spawns
+      `ffmpeg` to dial the same `srt://` endpoint a device's own decode
+      source pulls from (only possible in `caller`/`rendezvous` mode - in
+      `listener` mode the upstream dials the Play, so there's nothing
+      independently reachable), streaming genuinely live MJPEG through to
+      the browser. NDI stays a placeholder deliberately - no open decoder
+      exists without the proprietary NDI SDK, which would reverse the
+      "control plane only" principle. Found and fixed a real bug along the
+      way: modern Chrome doesn't reliably render `multipart/x-mixed-replace`
+      via a plain `<img src>` anymore (confirmed live - frames arrive, `img`
+      never updates), so the frontend manually parses the multipart stream
+      via `fetch()`+`ReadableStream` and swaps in `blob:` URLs per frame
+      instead. See docs/architecture.md's "Live SRT preview" section,
+      including the new `ffmpeg` runtime dependency (must have SRT input
+      support - most default packages don't) and process-lifecycle handling.
 - [x] **Auth for flock itself** — optional (`admin_password` in
       `config/flock.toml`, unset by default so existing behavior is
       unchanged). A single shared password gates a session cookie

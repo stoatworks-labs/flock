@@ -13,6 +13,11 @@
     // Tags present here are collapsed; everything else (including the
     // synthetic "" / "All devices" group) starts expanded.
     collapsedGroups: new Set(),
+    // Which device's live preview is currently loaded (or null) - guards
+    // against re-spawning the preview's ffmpeg process on every WS-driven
+    // re-render (renderCenter runs far more often than the selection
+    // actually changes).
+    previewLoadedFor: null,
   };
 
   const el = (id) => document.getElementById(id);
@@ -218,6 +223,8 @@
       const memberIds = (state.groups[state.activeGroup] || []).map(idStr);
       tabBar.hidden = false;
       selectedActions.hidden = true;
+      if (state.previewLoadedFor !== null && activePreviewAbort) activePreviewAbort.abort();
+      state.previewLoadedFor = null;
       preview.innerHTML = `<div id="preview-placeholder">Batch editing "${escapeHtml(state.activeGroup)}" — ${memberIds.length} device${memberIds.length === 1 ? "" : "s"}</div>`;
       if (state.activeTab === "status") state.activeTab = "network";
       tabBar.querySelectorAll(".tab-btn").forEach((btn) => {
@@ -237,6 +244,8 @@
     if (!device) {
       tabBar.hidden = true;
       selectedActions.hidden = true;
+      if (state.previewLoadedFor !== null && activePreviewAbort) activePreviewAbort.abort();
+      state.previewLoadedFor = null;
       preview.innerHTML = `<div id="preview-placeholder">Select a device to view its preview and settings</div>`;
       el("tab-content").innerHTML = "";
       return;
@@ -244,13 +253,136 @@
 
     tabBar.hidden = false;
     selectedActions.hidden = false;
-    preview.innerHTML = `<div id="preview-placeholder">${escapeHtml(device.name)} — live preview needs real hardware (Phase 2)</div>`;
+    if (state.previewLoadedFor !== idStr(device.id)) {
+      state.previewLoadedFor = idStr(device.id);
+      loadPreview(device);
+    }
 
     tabBar.querySelectorAll(".tab-btn").forEach((btn) => {
       btn.classList.toggle("tab-active", btn.dataset.tab === state.activeTab);
     });
 
     renderTabContent(device);
+  }
+
+  // Live preview is only possible for an SRT decode source in caller/
+  // rendezvous mode (flock dials the same srt:// endpoint the Play itself
+  // decodes from) - the backend figures out availability and returns a
+  // plain-text explanation otherwise.
+  //
+  // The backend streams multipart/x-mixed-replace (ffmpeg's own mpjpeg
+  // muxer) - a plain <img src="..."> pointed at it looks like the obvious
+  // way to consume that, but modern Chrome no longer reliably renders
+  // multipart/x-mixed-replace via <img> at all (confirmed: the request
+  // succeeds, frames arrive, and the <img> just never updates). So this
+  // fetches the stream itself and manually parses out each JPEG part,
+  // swapping the <img>'s src to a fresh blob: URL per frame instead - more
+  // code, but works regardless of browser-level multipart support.
+  let activePreviewAbort = null;
+
+  async function loadPreview(device) {
+    const preview = el("preview-box");
+    const deviceId = idStr(device.id);
+    preview.innerHTML = `<div id="preview-placeholder">Loading preview…</div>`;
+    if (activePreviewAbort) activePreviewAbort.abort();
+    const controller = new AbortController();
+    activePreviewAbort = controller;
+
+    try {
+      const res = await fetch(`/api/devices/${deviceId}/preview`, {
+        signal: controller.signal,
+      });
+      if (!res.ok) {
+        const msg = await res.text().catch(() => res.statusText);
+        if (state.previewLoadedFor === deviceId) {
+          preview.innerHTML = `<div id="preview-placeholder">${escapeHtml(msg)}</div>`;
+        }
+        return;
+      }
+      if (state.previewLoadedFor !== deviceId) {
+        controller.abort();
+        return;
+      }
+      preview.innerHTML = `<img class="preview-stream" alt="${escapeAttr(device.name)} live preview">`;
+      await streamMjpegFrames(res, preview.querySelector(".preview-stream"));
+    } catch (err) {
+      if (err.name === "AbortError") return; // expected when switching devices
+      if (state.previewLoadedFor === deviceId) {
+        preview.innerHTML = `<div id="preview-placeholder">Preview failed: ${escapeHtml(err.message)}</div>`;
+      }
+    }
+  }
+
+  // Parses ffmpeg's mpjpeg output (boundary + "Content-length: N" header +
+  // N raw JPEG bytes, repeated) directly off the response body's byte
+  // stream and updates `imgEl.src` to a fresh object URL per frame,
+  // revoking the previous one so frames don't leak memory.
+  async function streamMjpegFrames(res, imgEl) {
+    const contentType = res.headers.get("content-type") || "";
+    const boundaryName = contentType.split("boundary=")[1]?.trim() || "ffmpeg";
+    const boundaryBytes = new TextEncoder().encode(`--${boundaryName}`);
+    const headerEndBytes = new Uint8Array([13, 10, 13, 10]); // \r\n\r\n
+    const reader = res.body.getReader();
+    let buf = new Uint8Array(0);
+    let currentUrl = null;
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf = concatBytes(buf, value);
+
+        let frame;
+        while ((frame = extractMjpegFrame(buf, boundaryBytes, headerEndBytes))) {
+          const blob = new Blob([frame.bytes], { type: "image/jpeg" });
+          const newUrl = URL.createObjectURL(blob);
+          imgEl.src = newUrl;
+          if (currentUrl) URL.revokeObjectURL(currentUrl);
+          currentUrl = newUrl;
+          buf = frame.rest;
+        }
+      }
+    } finally {
+      if (currentUrl) URL.revokeObjectURL(currentUrl);
+    }
+  }
+
+  function concatBytes(a, b) {
+    const out = new Uint8Array(a.length + b.length);
+    out.set(a, 0);
+    out.set(b, a.length);
+    return out;
+  }
+
+  function indexOfBytes(haystack, needle, from) {
+    outer: for (let i = from; i <= haystack.length - needle.length; i++) {
+      for (let j = 0; j < needle.length; j++) {
+        if (haystack[i + j] !== needle[j]) continue outer;
+      }
+      return i;
+    }
+    return -1;
+  }
+
+  // Returns {bytes, rest} for the next complete frame in `buf`, or null if
+  // a full frame isn't buffered yet (wait for more data from the reader).
+  function extractMjpegFrame(buf, boundaryBytes, headerEndBytes) {
+    const boundaryAt = indexOfBytes(buf, boundaryBytes, 0);
+    if (boundaryAt === -1) return null;
+    const headerStart = boundaryAt + boundaryBytes.length;
+    const headerEnd = indexOfBytes(buf, headerEndBytes, headerStart);
+    if (headerEnd === -1) return null;
+    const headerText = new TextDecoder().decode(buf.slice(headerStart, headerEnd));
+    const lengthMatch = headerText.match(/Content-length:\s*(\d+)/i);
+    const bodyStart = headerEnd + headerEndBytes.length;
+    if (!lengthMatch) {
+      // Malformed part header - skip past it rather than looping forever.
+      return { bytes: new Uint8Array(0), rest: buf.slice(bodyStart) };
+    }
+    const contentLength = parseInt(lengthMatch[1], 10);
+    const bodyEnd = bodyStart + contentLength;
+    if (buf.length < bodyEnd) return null; // frame body not fully buffered yet
+    return { bytes: buf.slice(bodyStart, bodyEnd), rest: buf.slice(bodyEnd) };
   }
 
   async function renderTabContent(device) {
@@ -295,6 +427,13 @@
         statusEl.textContent = "Saved";
         statusEl.classList.add("visible");
         setTimeout(() => statusEl.classList.remove("visible"), 1500);
+        // Decode settings changing (source, connection details, ...) can
+        // change what the live preview should show - force it to reload
+        // rather than keep displaying whatever was live before the save.
+        if (tab === "decode" && state.previewLoadedFor === deviceId) {
+          state.previewLoadedFor = null;
+          renderCenter();
+        }
       } catch (err) {
         statusEl.textContent = `Error: ${err.message}`;
         statusEl.classList.add("visible");

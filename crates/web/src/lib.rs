@@ -1,6 +1,7 @@
 mod auth;
 mod error;
 mod handlers;
+mod preview;
 mod state;
 mod static_assets;
 mod ws;
@@ -52,6 +53,7 @@ pub fn app(state: AppState) -> Router {
             get(handlers::get_system).post(handlers::set_system),
         )
         .route("/api/devices/:id/reboot", post(handlers::reboot_device))
+        .route("/api/devices/:id/preview", get(preview::get_preview))
         .route("/api/discovery/scan", get(handlers::scan_discovery))
         .route("/api/ndi/sources", get(handlers::get_ndi_sources))
         .route(

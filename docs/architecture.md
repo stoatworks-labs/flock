@@ -255,6 +255,61 @@ connection details and having them actually take effect on the device is
 device itself isn't cooperating in testing. `srt_available_sources` remains
 unimplemented (the `:8080/writesrt` 404 blocks it too, for now).
 
+## Live SRT preview
+
+`GET /api/devices/:id/preview` (`crates/web/src/preview.rs`) gives the
+Decode tab's preview box genuinely live video - not a periodic snapshot -
+for a device's SRT decode source specifically. NDI preview is deliberately
+out of scope: there's no open decoder for it, only the proprietary NDI SDK,
+and bundling that would be a real reversal of the "control plane only, no
+media relay" principle above. SRT is different - it's an open protocol
+ffmpeg can decode without any special SDK.
+
+- **What it actually previews**: not the Play's own decoded HDMI output
+  (Play doesn't expose that over the network at all) - flock dials the
+  *same* `srt://` endpoint the Play itself is configured to pull from,
+  independently. This only works when flock can reach that endpoint on its
+  own, which is only true in `caller`/`rendezvous` connection-type mode; in
+  `listener` mode the upstream source dials *the Play*, so there's no
+  independent endpoint for flock to also connect to (confirmed: the preview
+  endpoint returns a `501` explaining this rather than trying).
+- **Mechanism: ffmpeg subprocess, MJPEG, manually parsed on the frontend.**
+  flock spawns `ffmpeg -i srt://... -f mpjpeg -` and streams its stdout
+  straight through as the HTTP response body
+  (`multipart/x-mixed-replace; boundary=ffmpeg`, ffmpeg's own mpjpeg muxer
+  format). The obvious frontend consumption - a plain `<img src="...">`
+  pointed at it - does **not** work reliably: confirmed live that modern
+  Chrome accepts the response and receives frames but never updates the
+  `<img>` element at all. `app.js`'s `streamMjpegFrames` instead reads the
+  response body itself via `fetch()` + `ReadableStream`, manually parses out
+  each JPEG part (using the `Content-length` header ffmpeg's muxer includes
+  per part), and swaps `img.src` to a fresh `blob:` URL per frame (revoking
+  the previous one) - more code, but confirmed live to actually render
+  continuously-updating video.
+- **ffmpeg needs SRT input support specifically - most default packages
+  lack it.** Confirmed live: Homebrew's plain `ffmpeg` formula on macOS has
+  no `srt` protocol at all (only unrelated `srtp`); `ffmpeg-full` (a
+  separate, keg-only formula) does. The same gap likely applies to Debian's
+  `ffmpeg` apt package used in `Dockerfile`'s runtime image - SRT support
+  there is **unconfirmed either way**, flagged in the Dockerfile's own
+  comment. If `ffmpeg` isn't found on `PATH` at all, the preview endpoint
+  returns a clear `503` explaining that; if it's found but lacks SRT
+  support, ffmpeg itself fails to connect and the preview just never
+  produces a frame - not distinguished from other connection failures yet.
+- **Process lifecycle**: each preview request spawns its own `ffmpeg`
+  (`kill_on_drop(true)`), bridged to the HTTP response body through an
+  `mpsc` channel in a background task that owns the `Child` handle. When the
+  browser tab closes or navigates away, the fetch's `AbortController` aborts
+  the request, the response body drops, the channel closes, the bridging
+  task ends, and `Child` drops - confirmed live (no leaked `ffmpeg`
+  processes after disconnecting, checked via `ps`).
+- **The frontend only (re)connects on an actual device-selection change**,
+  not on every WS-driven re-render (`state.previewLoadedFor` guards this) -
+  `renderCenter()` runs far more often than the selected device actually
+  changes, and reconnecting on every poll would spawn/kill ffmpeg
+  constantly. Saving the Decode tab for the currently-previewed device does
+  force a reconnect, since the source it should be showing may have changed.
+
 ## Two unrelated kinds of discovery - keep them separate
 
 `crates/discovery` answers two genuinely different questions, and folding

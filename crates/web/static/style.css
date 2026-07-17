@@ -199,6 +199,12 @@ body {
   color: var(--text-dim);
   text-align: center;
   padding: 1rem;
+  overflow: hidden;
+}
+.preview-stream {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .tab-bar { display: flex; gap: 0.25rem; border-bottom: 1px solid var(--border); }

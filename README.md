@@ -135,9 +135,19 @@ Working:
   whole UI/API behind a single shared login, with brute-force lockout on the
   login endpoint. See
   [docs/architecture.md](docs/architecture.md#flocks-own-auth-is-optional-off-by-default)
+- **Live preview — genuinely live, not a snapshot — for SRT decode sources**
+  (in caller/rendezvous mode). flock dials the same `srt://` source the
+  device itself decodes from and streams it into the browser via ffmpeg;
+  along the way, found that modern Chrome doesn't reliably render
+  `multipart/x-mixed-replace` through a plain `<img src>` any more, so the
+  frontend parses the stream itself and swaps in a fresh frame per `blob:`
+  URL instead. Requires an `ffmpeg` with SRT input support on `PATH` (most
+  default packages lack this — see below). NDI preview stays a placeholder
+  on purpose — no open decoder exists without the proprietary NDI SDK. See
+  [docs/architecture.md](docs/architecture.md#live-srt-preview)
 
 Not yet done:
-- Live video preview is a placeholder (needs an actual NDI/SRT frame grab)
+- Live NDI preview (no open decoder without the proprietary NDI SDK — see above)
 - Actually applying a manually-entered SRT source — see above, the real
   device-side mechanism hasn't behaved reliably in testing yet
 
@@ -149,6 +159,10 @@ cargo run -p flock
 
 Then open `http://localhost:8080`. On first run with an empty registry it
 seeds three demo devices so there's something to look at immediately.
+Everything works without it, but if you want the live SRT preview,
+`ffmpeg` needs to be on `PATH` — specifically a build with SRT input
+support, which most default packages (including plain Homebrew `ffmpeg` on
+macOS) lack; see [docs/architecture.md](docs/architecture.md#live-srt-preview).
 
 ### Docker
 
@@ -160,7 +174,11 @@ Uses `network_mode: host` so both discovery mechanisms (the subnet probe and
 mDNS) can reach the LAN from inside the container — see
 [docs/architecture.md](docs/architecture.md#docker--networking) for the
 tradeoff and the bridge-networking alternative if you'd rather keep
-container isolation and rely on manual add only.
+container isolation and rely on manual add only. The image installs
+`ffmpeg` for the live SRT preview, but whether Debian's package has SRT
+input support is unconfirmed — check with
+`docker compose exec flock ffmpeg -protocols | grep srt` if the preview
+isn't working.
 
 ### Desktop app
 
@@ -168,7 +186,8 @@ Prefer not to touch the terminal? A small menu-bar app lets you pick the network
 interface + port, Start/Stop the server, and open the web UI. The `flock` server
 is bundled inside, so it's a single download — nothing to install or wire up.
 Grab the `.dmg` from [Releases](https://github.com/allansargeant/flock/releases),
-or see [launcher/](launcher/) to build it.
+or see [launcher/](launcher/) to build it. It doesn't bundle `ffmpeg`, so the
+live SRT preview needs one on the host machine's `PATH` independently.
 
 <p align="center"><img src="launcher/docs/panel.png" width="300" alt="flock desktop app"></p>
 
