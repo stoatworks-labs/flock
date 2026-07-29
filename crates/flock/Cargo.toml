@@ -9,6 +9,7 @@ name = "flock"
 path = "src/main.rs"
 
 [dependencies]
+diag = { path = "../diag" }
 flock-core = { path = "../core" }
 flock-discovery = { path = "../discovery" }
 flock-device-mock = { path = "../device-mock" }
