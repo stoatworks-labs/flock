@@ -1,6 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
+    "crates/diag",
     "crates/core",
     "crates/discovery",
     "crates/device-mock",

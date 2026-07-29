@@ -10,17 +10,26 @@ use config::Config;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    tracing_subscriber::fmt()
-        .with_env_filter(
-            tracing_subscriber::EnvFilter::from_default_env().add_directive("flock=info".parse()?),
-        )
-        .init();
+    // Before the config is read, so a fault while parsing it has somewhere to
+    // be recorded.
+    let _diag = diag::init(
+        diag::Options::new("flock", "FLOCK", env!("CARGO_PKG_VERSION"))
+            .with_default_filter("flock=info"),
+    )?;
+
+    // No clap here, so the flag is checked by hand rather than restructuring
+    // the whole binary around an argument parser it does not otherwise need.
+    if std::env::args().any(|a| a == "--collect-diagnostics") {
+        println!("{}", diag::collect_diagnostics()?.display());
+        return Ok(());
+    }
 
     let config_path = std::env::args()
         .nth(1)
         .unwrap_or_else(|| "config/flock.toml".to_string());
     let config = Config::load(&config_path)?;
     tracing::info!(?config, "loaded config");
+    diag::set_config(&config);
 
     let registry = flock_core::Registry::load_or_new(config.registry_path.clone().into())?;
     if config.seed_demo_devices && registry.list().is_empty() {
