@@ -185,7 +185,7 @@ isn't working.
 Prefer not to touch the terminal? A small menu-bar app lets you pick the network
 interface + port, Start/Stop the server, and open the web UI. The `flock` server
 is bundled inside, so it's a single download — nothing to install or wire up.
-Grab the `.dmg` from [Releases](https://github.com/allansargeant/flock/releases),
+Grab the `.dmg` from [Releases](https://github.com/stoatworks-labs/flock/releases),
 or see [launcher/](launcher/) to build it. It doesn't bundle `ffmpeg`, so the
 live SRT preview needs one on the host machine's `PATH` independently.
 
