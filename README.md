@@ -37,6 +37,11 @@ built, and the honesty rules it has to keep, are in [demo/README.md](demo/README
 than one group, and appears under each), preview + settings in the center,
 discovery/add/local settings on the right:
 
+[![Watch it running — 45 seconds](docs/video-thumb.png)](https://www.youtube.com/watch?v=cMsg6hkjjN0)
+
+*A 45-second tour of the real app against its three seeded `device-mock` devices —
+the same simulated fleet the hosted demo records from. No PLAY hardware involved.*
+
 ![flock overview: nested group tree with devices under All devices/backup/lobby/primary/stage, no device selected yet](docs/screenshots/overview.png)
 
 **Status** tab — the per-device dashboard:
