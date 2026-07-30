@@ -200,6 +200,23 @@ jobs:
           fi
           chmod +x launcher/src-tauri/bin/flock* || true
 
+          # Tauri resolves resources relative to src-tauri and reports a
+          # missing one only at build time, by which point the useful context
+          # is gone. Prove the payload is there, and name every resource the
+          # manifest asks for, so a mismatch is visible here instead.
+          echo "--- launcher/src-tauri/bin ---"
+          ls -la launcher/src-tauri/bin
+          echo "--- resources tauri.conf.json expects ---"
+          node -e "
+            const c = require('./launcher/src-tauri/tauri.conf.json');
+            for (const r of (c.bundle && c.bundle.resources) || []) console.log(r);
+          "
+          for want in flock flock.exe; do
+            if [ ! -f "launcher/src-tauri/bin/$want" ]; then
+              echo "MISSING: launcher/src-tauri/bin/$want" >&2; exit 1
+            fi
+          done
+
       - name: Build launcher
         # working-directory, not `npm --prefix`: npx has no --prefix, so it
         # resolved the local tauri bin against the repo root, which has no
