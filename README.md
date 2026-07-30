@@ -17,6 +17,17 @@ into (multiple) groups, see/change every BirdUI setting for a selected
 device from one un-nested, tabbed view, or push a setting to an entire
 group at once.
 
+## Try the UI
+
+**<https://stoatworks-labs.com/flock/>** — flock's real web UI, click-through, in
+your browser. It replays responses recorded from flock running against its three
+seeded `device-mock` devices, so what you see is output flock actually produced.
+
+Nothing there is live and nothing you change is saved: flock talks to PLAY units
+over the LAN, and a hosted page has no devices to reach. To control real
+hardware, run it yourself — see [Quick start](#quick-start). How the demo is
+built, and the honesty rules it has to keep, are in [demo/README.md](demo/README.md).
+
 ## Screenshots
 
 *Real screenshots of flock running locally against the three seeded
