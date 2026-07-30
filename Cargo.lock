@@ -521,7 +521,7 @@ version = "0.1.2"
 dependencies = [
  "anyhow",
  "futures",
- "if-addrs",
+ "if-addrs 0.15.0",
  "mdns-sd",
  "reqwest",
  "serde",
@@ -986,6 +986,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "if-addrs"
+version = "0.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c0a05c691e1fae256cf7013d99dad472dc52d5543322761f83ec8d47eab40d2b"
+dependencies = [
+ "libc",
+ "windows-sys 0.61.2",
+]
+
+[[package]]
 name = "indexmap"
 version = "2.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1114,7 +1124,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8fe7c11a1eb3cfbfcf702d1601c1f5f4c102cdc8665b8a557783ef634741676e"
 dependencies = [
  "flume",
- "if-addrs",
+ "if-addrs 0.13.4",
  "log",
  "polling",
  "socket2 0.5.10",
