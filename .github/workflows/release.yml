@@ -99,6 +99,25 @@ jobs:
           cd ..
           mv dist/*.deb dist/*.rpm . 2>/dev/null || true
 
+      - name: Installers (macOS)
+        if: runner.os == 'macOS'
+        shell: bash
+        # An archive of a CLI is not an install experience. The .pkg drops the
+        # binaries under /usr/local/flock and links them into /usr/local/bin;
+        # the .dmg carries the same payload for anyone who prefers to copy it
+        # by hand. Same helper the local release script uses, so CI and local
+        # artefacts are identical.
+        run: |
+          source scripts/release-lib.sh
+          rl_init "flock" flock "${{ steps.ver.outputs.version }}" com.stoatworks.flock "$GITHUB_WORKSPACE"
+          stage="$RUNNER_TEMP/stage-cli"
+          rm -rf "$stage"; mkdir -p "$stage"
+          cp dist/flock "$stage/"
+          cp README.md LICENSE "$stage/" 2>/dev/null || true
+          if [ -d config ]; then cp -R config "$stage/"; fi
+          rl_pkg "${{ matrix.name }}-cli" "$stage" --cli
+          rl_dmg "${{ matrix.name }}-cli" "$stage"
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -108,11 +127,172 @@ jobs:
             *.tar.gz
             *.deb
             *.rpm
+            *.dmg
+            *.pkg
+          if-no-files-found: error
+
+  launcher:
+    name: launcher-${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    # Tauri's bundler shells out to host-only tooling, so it cannot
+    # cross-compile — each platform has to build its own. That is precisely why
+    # this belongs in CI: a Mac cannot produce the Linux .deb/.AppImage at all,
+    # and the arm64 Windows VM cannot run Tauri's 32-bit makensis. Native
+    # runners solve both.
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: macos,   os: macos-14,       target: aarch64-apple-darwin,     bundles: app }
+          - { name: linux,   os: ubuntu-latest,  target: x86_64-unknown-linux-gnu, bundles: 'deb,appimage' }
+          - { name: windows, os: windows-latest, target: x86_64-pc-windows-msvc,   bundles: 'nsis,msi' }
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: launcher-${{ matrix.target }}
+
+      - name: Install Tauri Linux deps
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev \
+            librsvg2-dev patchelf libgtk-3-dev
+
+      - name: Derive version
+        id: ver
+        shell: bash
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            echo "version=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=0.0.0-dev.${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Embed the server binary
+        shell: bash
+        # The launcher ships flock as a Tauri resource. tauri.conf.json names it
+        # without an extension, so Windows needs the .exe copied under BOTH
+        # spellings or the bundler fails on the missing resource path.
+        run: |
+          cargo build --release --target ${{ matrix.target }} -p flock
+          mkdir -p launcher/src-tauri/bin
+          # `cond && cmd` as a bare line is a trap here: Actions runs bash with
+          # set -e, so a false condition returns non-zero and kills the step.
+          # Use if/fi for anything that is legitimately optional.
+          ext=""
+          if [[ "${{ matrix.target }}" == *windows* ]]; then ext=".exe"; fi
+          src="target/${{ matrix.target }}/release/flock${ext}"
+          cp "$src" "launcher/src-tauri/bin/flock${ext}"
+          if [[ -n "$ext" ]]; then cp "$src" "launcher/src-tauri/bin/flock"; fi
+          if [ -f config/example.toml ]; then
+            cp config/example.toml launcher/src-tauri/bin/server-config.toml
+          fi
+          chmod +x launcher/src-tauri/bin/flock* || true
+
+      - name: Build launcher
+        shell: bash
+        run: |
+          npm --prefix launcher install --no-audit --no-fund
+          npx --prefix launcher --no-install tauri build \
+            --target ${{ matrix.target }} --bundles ${{ matrix.bundles }} \
+            || ( cd launcher && npx --no-install tauri build \
+                 --target ${{ matrix.target }} --bundles ${{ matrix.bundles }} )
+
+      - name: Installers (macOS launcher)
+        if: runner.os == 'macOS'
+        shell: bash
+        # Tauri's own dmg step drives Finder over AppleScript and fails on a
+        # headless runner, so the image is built here instead. Ad-hoc signing
+        # first: an unsigned bundle is refused with "is damaged".
+        run: |
+          source scripts/release-lib.sh
+          rl_init "flock" flock "${{ steps.ver.outputs.version }}" com.stoatworks.flock "$GITHUB_WORKSPACE"
+          appdir="launcher/src-tauri/target/${{ matrix.target }}/release/bundle/macos"
+          app="flock.app"
+          if [ ! -d "$appdir/$app" ]; then echo "no .app produced" >&2; exit 1; fi
+          stage="$RUNNER_TEMP/stage-launcher"
+          rm -rf "$stage"; mkdir -p "$stage"
+          cp -R "$appdir/$app" "$stage/"
+          rl_adhoc_sign "$stage/$app"
+          rl_dmg macos-app "$stage" --app "$app"
+          rl_pkg macos-app "$stage" --app "$app"
+
+      - name: Collect launcher bundles
+        shell: bash
+        run: |
+          mkdir -p launcher-out
+          find launcher/src-tauri/target/${{ matrix.target }}/release/bundle \
+            -type f \( -name '*.deb' -o -name '*.AppImage' -o -name '*.exe' -o -name '*.msi' \) \
+            -exec cp {} launcher-out/ \; 2>/dev/null || true
+          cp *.dmg *.pkg launcher-out/ 2>/dev/null || true
+          ls -l launcher-out || true
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: flock-launcher-${{ matrix.name }}
+          path: launcher-out/*
+          if-no-files-found: warn
+
+  windows-installers:
+    name: Windows installers
+    needs: build
+    runs-on: ubuntu-latest
+    # makensis cross-compiles, so both architectures are produced here from the
+    # zips the Windows jobs uploaded. Building them on the Windows runners is
+    # not viable for arm64 — that image cannot execute the 32-bit makensis.
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Install NSIS
+        run: sudo apt-get update && sudo apt-get install -y nsis
+
+      - name: Build installers
+        shell: bash
+        run: |
+          source scripts/release-lib.sh
+          version="${GITHUB_REF_NAME#v}"
+          rl_init "flock" flock "$version" com.stoatworks.flock "$PWD/installers"
+          for arch in x86_64 aarch64; do
+            zip="$(find artifacts -name "flock-windows-${arch}.zip" | head -1)"
+            if [ -z "$zip" ]; then
+              echo "no build artefact for windows-${arch}, skipping"
+              continue
+            fi
+            stage="$RUNNER_TEMP/stage-${arch}"
+            rm -rf "$stage"; mkdir -p "$stage"
+            unzip -q "$zip" -d "$stage"
+            cp README.md LICENSE "$stage/" 2>/dev/null || true
+            if [ -d config ]; then cp -R config "$stage/"; fi
+            # A service binary has no shortcut to make; --cli installs the
+            # files and appends the install dir to the system PATH.
+            rl_nsis "windows-${arch}" "$stage" --cli
+          done
+          ls -l installers
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: flock-windows-installers
+          path: installers/*
           if-no-files-found: error
 
   release:
     name: Publish release
-    needs: build
+    needs: [build, windows-installers, launcher]
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     steps:
