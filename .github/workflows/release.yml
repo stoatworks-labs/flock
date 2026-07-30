@@ -211,9 +211,13 @@ jobs:
             const c = require('./launcher/src-tauri/tauri.conf.json');
             for (const r of (c.bundle && c.bundle.resources) || []) console.log(r);
           "
-          for want in flock flock.exe; do
-            if [ ! -f "launcher/src-tauri/bin/$want" ]; then
-              echo "MISSING: launcher/src-tauri/bin/$want" >&2; exit 1
+          # Only Windows has the .exe spelling; requiring both unconditionally
+          # broke the macOS and Linux jobs that were already working.
+          want="flock"
+          if [ -n "$ext" ]; then want="flock flock${ext}"; fi
+          for w in $want; do
+            if [ ! -f "launcher/src-tauri/bin/$w" ]; then
+              echo "MISSING: launcher/src-tauri/bin/$w" >&2; exit 1
             fi
           done
 
