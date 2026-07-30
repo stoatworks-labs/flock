@@ -52,6 +52,15 @@ if base != '/':
     # rewritten path becomes relative and resolves under itself.
     html = re.sub(r'((?:src|href)=")/(?!/)', lambda m: m.group(1) + base, html)
 
+# Served straight from disk, these files no longer get the backend's
+# `Content-Type: text/html; charset=utf-8` header, so the encoding has to be
+# declared in the markup or non-ASCII text renders as mojibake. Deliberately
+# NOT adding a doctype: some of these documents are authored against quirks
+# mode, and switching them to standards mode would change the layout the demo
+# is supposed to be showing.
+if not re.search(r'<meta\s+charset', html, re.I):
+    html = '<meta charset="utf-8">\n' + html
+
 shim = '<script src="demo-shim.js" data-fixtures="demo-fixtures.json"></script>\n'
 if 'demo-shim.js' not in html:
     # Before the first <script src=...>, or failing that at the end of <body>.
