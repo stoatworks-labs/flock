@@ -1,0 +1,10 @@
+# Config used to record the hosted demo (scripts/record-demo.sh).
+#
+# Everything is simulated: `provider = "mock"` drives crates/device-mock rather
+# than any real BirdDog PLAY, and the registry is seeded with canned devices and
+# written somewhere throwaway so recording can't touch a real device list.
+bind = "127.0.0.1:8099"
+registry_path = "data/registry-demo.json"
+app_settings_path = "data/app_settings-demo.json"
+seed_demo_devices = true
+provider = "mock"

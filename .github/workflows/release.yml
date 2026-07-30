@@ -201,13 +201,15 @@ jobs:
           chmod +x launcher/src-tauri/bin/flock* || true
 
       - name: Build launcher
+        # working-directory, not `npm --prefix`: npx has no --prefix, so it
+        # resolved the local tauri bin against the repo root, which has no
+        # package.json, and died with ENOENT on Windows.
+        working-directory: launcher
         shell: bash
         run: |
-          npm --prefix launcher install --no-audit --no-fund
-          npx --prefix launcher --no-install tauri build \
-            --target ${{ matrix.target }} --bundles ${{ matrix.bundles }} \
-            || ( cd launcher && npx --no-install tauri build \
-                 --target ${{ matrix.target }} --bundles ${{ matrix.bundles }} )
+          npm install --no-audit --no-fund
+          npx --no-install tauri build \
+            --target ${{ matrix.target }} --bundles ${{ matrix.bundles }}
 
       - name: Installers (macOS launcher)
         if: runner.os == 'macOS'
