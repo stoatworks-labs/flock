@@ -253,8 +253,18 @@ NSI
   # Under LC_CTYPE=C that conversion throws std::bad_alloc and aborts *with a
   # zero exit status*, so force a UTF-8 locale and verify the file was written
   # rather than trusting the return code.
+  #
+  # Which UTF-8 locale exists varies: C.UTF-8 on most Linux images, en_US.UTF-8
+  # on macOS. Picking one that is not installed would put us back where we
+  # started, so probe rather than assume.
+  local loc
+  if locale -a 2>/dev/null | grep -qx 'C.UTF-8'; then loc=C.UTF-8
+  elif locale -a 2>/dev/null | grep -qix 'en_US.UTF-8'; then loc=en_US.UTF-8
+  else loc="$(locale -a 2>/dev/null | grep -im1 'utf-\?8' || echo en_US.UTF-8)"
+  fi
+
   rm -f "$outfile"
-  LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8 makensis -V2 "$nsi" >"$work/makensis.log" 2>&1 || true
+  LC_ALL="$loc" LANG="$loc" makensis -V2 "$nsi" >"$work/makensis.log" 2>&1 || true
   if [[ -s "$outfile" ]]; then
     rl_note "$(basename "$outfile")"
   else
@@ -437,9 +447,19 @@ rl_dmg() { # rl_dmg <label> <stagedir> [--app <BundleName>]
     rl_note "create-dmg failed, falling back to hdiutil"
   fi
 
-  hdiutil create -quiet -volname "${RL_NAME} ${RL_VERSION}" \
-                 -srcfolder "$stage" -ov -format UDZO "$outfile"
-  rl_note "$(basename "$outfile")"
+  # -quiet hides hdiutil's diagnostics too, which turned a CI failure into a
+  # bare "exit code 1". Capture the output and print it only when it matters.
+  local hdlog; hdlog="$(mktemp)"
+  if hdiutil create -volname "${RL_NAME} ${RL_VERSION}" \
+                    -srcfolder "$stage" -ov -format UDZO "$outfile" >"$hdlog" 2>&1; then
+    rm -f "$hdlog"
+    rl_note "$(basename "$outfile")"
+  else
+    echo "hdiutil failed building ${label}:" >&2
+    cat "$hdlog" >&2
+    rm -f "$hdlog"
+    return 1
+  fi
 }
 
 # ------------------------------------------------------------------ report --
