@@ -194,7 +194,6 @@ jobs:
           if [[ "${{ matrix.target }}" == *windows* ]]; then ext=".exe"; fi
           src="target/${{ matrix.target }}/release/flock${ext}"
           cp "$src" "launcher/src-tauri/bin/flock${ext}"
-          if [[ -n "$ext" ]]; then cp "$src" "launcher/src-tauri/bin/flock"; fi
           if [ -f config/example.toml ]; then
             cp config/example.toml launcher/src-tauri/bin/server-config.toml
           fi
@@ -211,15 +210,28 @@ jobs:
             const c = require('./launcher/src-tauri/tauri.conf.json');
             for (const r of (c.bundle && c.bundle.resources) || []) console.log(r);
           "
-          # Only Windows has the .exe spelling; requiring both unconditionally
-          # broke the macOS and Linux jobs that were already working.
-          want="flock"
-          if [ -n "$ext" ]; then want="flock flock${ext}"; fi
-          for w in $want; do
-            if [ ! -f "launcher/src-tauri/bin/$w" ]; then
-              echo "MISSING: launcher/src-tauri/bin/$w" >&2; exit 1
-            fi
-          done
+          # On Windows the extensionless copy is made by PowerShell in the next
+          # step: Git Bash resolves a bare name to its .exe sibling, so `cp` here
+          # silently overwrites flock.exe instead of creating flock, and even
+          # `test -f bin/flock` returns true for a file that does not exist.
+          if [ -z "$ext" ] && [ ! -f "launcher/src-tauri/bin/flock" ]; then
+            echo "MISSING: launcher/src-tauri/bin/flock" >&2; exit 1
+          fi
+
+      - name: Duplicate the server binary under its unix name (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        # tauri.conf.json lists the resource as bin/flock with no extension, so
+        # Windows needs both spellings on disk. PowerShell does the copy because
+        # it does no MSYS-style name resolution — Copy-Item to "flock" creates a
+        # file called exactly that.
+        run: |
+          $src = "launcher/src-tauri/bin/flock.exe"
+          Copy-Item $src "launcher/src-tauri/bin/flock" -Force
+          Get-ChildItem launcher/src-tauri/bin | Select-Object Name, Length
+          if (-not (Test-Path -LiteralPath "launcher/src-tauri/bin/flock" -PathType Leaf)) {
+            throw "bin/flock still missing after Copy-Item"
+          }
 
       - name: Build launcher
         # working-directory, not `npm --prefix`: npx has no --prefix, so it
