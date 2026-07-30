@@ -113,6 +113,83 @@
     return null;
   }
 
+  // ---- writes -------------------------------------------------------------
+
+  /** Order-independent key for a request body, matching the recorder's. */
+  function sortKeys(value) {
+    if (Array.isArray(value)) return value.map(sortKeys);
+    if (value && typeof value === 'object') {
+      return Object.fromEntries(Object.keys(value).sort().map((key) => [key, sortKeys(value[key])]));
+    }
+    return value;
+  }
+
+  /**
+   * The last whole-state frame the app was shown, so a write's effect can be
+   * applied to what the visitor is actually looking at.
+   */
+  let currentState = null;
+
+  /** Keys where `after` differs from `before` — the write's real effect. */
+  function diff(before, after) {
+    if (before === null || typeof after !== 'object' || after === null) return after;
+    if (Array.isArray(after)) return after;
+    const changed = {};
+    for (const [k, v] of Object.entries(after)) {
+      const prev = before?.[k];
+      if (JSON.stringify(prev) === JSON.stringify(v)) continue;
+      changed[k] =
+        v && typeof v === 'object' && !Array.isArray(v) && prev && typeof prev === 'object'
+          ? diff(prev, v)
+          : v;
+    }
+    return changed;
+  }
+
+  function merge(base, patch) {
+    if (patch === null || typeof patch !== 'object' || Array.isArray(patch)) return patch;
+    const out = { ...(base && typeof base === 'object' ? base : {}) };
+    for (const [k, v] of Object.entries(patch)) {
+      out[k] = v && typeof v === 'object' && !Array.isArray(v) ? merge(out[k], v) : v;
+    }
+    return out;
+  }
+
+  /**
+   * Replay a write as the CHANGE it made, not the absolute state it produced.
+   *
+   * The recording session performs every write in sequence, so its later
+   * snapshots also contain every earlier write's changes. Replaying one of
+   * those verbatim would move things the visitor never touched — which is
+   * exactly the kind of behaviour-the-software-doesn't-have that this whole
+   * approach exists to avoid. Diffing against the snapshot taken immediately
+   * before the write isolates what that write alone did.
+   */
+  function applyEffect(recorded, frameData) {
+    if (!recorded.before) return frameData;
+    let after, before;
+    try {
+      after = JSON.parse(frameData);
+      before = JSON.parse(recorded.before);
+    } catch {
+      return frameData;
+    }
+    const effect = diff(before, after);
+    currentState = merge(currentState ?? before, effect);
+    return JSON.stringify(currentState);
+  }
+
+  async function matchWrite(method, pathname, init) {
+    if (!fixtures.writes?.length) return null;
+    let bodyKey = '';
+    const raw = init?.body;
+    if (typeof raw === 'string' && raw.trim()) {
+      try { bodyKey = ` ${JSON.stringify(sortKeys(JSON.parse(raw)))}`; } catch { bodyKey = ` ${raw}`; }
+    }
+    const wanted = `${method} ${pathname}${bodyKey}`;
+    return fixtures.writes.find((w) => w.key === wanted) ?? null;
+  }
+
   // ---- fetch --------------------------------------------------------------
 
   const WRITE = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
@@ -129,6 +206,16 @@
     const k = key(url, method);
 
     if (WRITE.has(method)) {
+      // A write that was actually performed during recording replays the
+      // backend's real answer, including whatever it pushed down the socket in
+      // reaction — that is what makes buttons like a crosspoint switch work.
+      const recorded = await matchWrite(method, u.pathname, init);
+      if (recorded) {
+        timelineStopped = true;
+        note('replaying the backend\'s recorded response — nothing real changed');
+        for (const frame of recorded.wsFrames ?? []) pushToSockets(applyEffect(recorded, frame.data));
+        return jsonResponse(recorded.body, recorded.status);
+      }
       const rec = lookup(k);
       note(`"${method} ${u.pathname}" isn't sent anywhere in the demo`);
       return jsonResponse(rec ? rec.body : { ok: true, demo: true }, rec?.status ?? 200);
@@ -161,6 +248,16 @@
    * their original relative timing, then holds the connection open — the apps
    * treat a close as "backend lost" and start reconnect loops.
    */
+  /** Every socket the app has open, so a write's recorded push reaches them. */
+  const openSockets = new Set();
+
+  /** Set once the visitor makes a change; freezes the recorded WS timeline. */
+  let timelineStopped = false;
+
+  function pushToSockets(data) {
+    for (const socket of openSockets) socket.deliver(data);
+  }
+
   class DemoWebSocket extends EventTarget {
     static CONNECTING = 0; static OPEN = 1; static CLOSING = 2; static CLOSED = 3;
 
@@ -170,7 +267,14 @@
       this.readyState = DemoWebSocket.CONNECTING;
       this.onopen = null; this.onmessage = null; this.onclose = null; this.onerror = null;
       this.binaryType = 'blob';
+      openSockets.add(this);
       whenReady().then(() => this.#start());
+    }
+
+    /** Deliver a frame recorded as a backend's reaction to a write. */
+    deliver(data) {
+      if (this.readyState !== DemoWebSocket.OPEN) return;
+      this.#emit('message', new MessageEvent('message', { data }));
     }
 
     #emit(type, event) {
@@ -191,6 +295,13 @@
         elapsed += Math.min(frame.dt ?? 0, 2000);
         setTimeout(() => {
           if (this.readyState !== DemoWebSocket.OPEN) return;
+          // These frames carry whole-state snapshots, so once the visitor has
+          // made a change the timeline has to stop: replaying the rest would
+          // silently undo what they just did.
+          if (timelineStopped) return;
+          // Remember what the app was last shown: a later write's effect gets
+          // applied on top of this, not on top of the recording's own history.
+          try { currentState = JSON.parse(frame.data); } catch { /* not JSON state */ }
           this.#emit('message', new MessageEvent('message', { data: frame.data }));
         }, elapsed);
       }
@@ -200,6 +311,7 @@
 
     close() {
       this.readyState = DemoWebSocket.CLOSED;
+      openSockets.delete(this);
       this.#emit('close', new CloseEvent('close', { code: 1000, wasClean: true }));
     }
   }
