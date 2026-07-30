@@ -26,6 +26,13 @@
 (() => {
   const script = document.currentScript;
   const fixturesUrl = script?.dataset.fixtures ?? 'demo-fixtures.json';
+  /**
+   * Where the site is mounted (e.g. '/caspar-av/'). Apps that request their API
+   * with RELATIVE paths ("api/state") resolve them under this prefix, but the
+   * recording is keyed by the backend's own absolute paths ("/api/state"), so
+   * the prefix is stripped before lookup.
+   */
+  const basePath = script?.dataset.base ?? '/';
 
   /** @type {{meta: object, http: Record<string, any>, ws: {url: string, frames: any[]}[]}} */
   let fixtures = { meta: {}, http: {}, ws: [] };
@@ -57,8 +64,23 @@
     if (link) Object.assign(link.style, { color: '#6ea8fe' });
     document.body.appendChild(el);
     bannerNote = el.querySelector('#stoatworks-demo-note');
-    // Keep the banner from covering the bottom of the app.
-    document.body.style.paddingBottom = `${el.offsetHeight + 8}px`;
+
+    // Keep the banner from covering the bottom of the app — and keep the
+    // reservation in step with the banner's actual height.
+    //
+    // Measuring once is wrong: the banner is inserted before the app's
+    // stylesheet has applied, when its text wraps over many lines. That first
+    // measurement can be several hundred pixels, and pinning body padding to it
+    // squashes any app whose layout is sized from the viewport. It looks like a
+    // broken app rather than a broken banner, which is how it went unnoticed.
+    const reserve = () => {
+      document.body.style.paddingBottom = `${el.offsetHeight + 8}px`;
+    };
+    reserve();
+    if (window.ResizeObserver) new ResizeObserver(reserve).observe(el);
+    window.addEventListener('resize', reserve);
+    // Belt and braces for browsers where the stylesheet lands after layout.
+    window.addEventListener('load', reserve);
   }
 
   let noteTimer = null;
@@ -87,12 +109,20 @@
 
   const whenReady = () => (ready ? Promise.resolve() : new Promise((r) => waiters.push(r)));
 
+  /** The path as the backend would have seen it, with any mount prefix removed. */
+  function backendPath(pathname) {
+    if (basePath !== '/' && pathname.startsWith(basePath)) {
+      return '/' + pathname.slice(basePath.length);
+    }
+    return pathname;
+  }
+
   /** Normalise a request URL to the recorded key: path + sorted query. */
   function key(url, method) {
     const u = new URL(url, location.href);
     const params = [...u.searchParams.entries()].sort();
     const qs = params.length ? `?${params.map(([k, v]) => `${k}=${v}`).join('&')}` : '';
-    return `${method.toUpperCase()} ${u.pathname}${qs}`;
+    return `${method.toUpperCase()} ${backendPath(u.pathname)}${qs}`;
   }
 
   /**
@@ -209,7 +239,7 @@
       // A write that was actually performed during recording replays the
       // backend's real answer, including whatever it pushed down the socket in
       // reaction — that is what makes buttons like a crosspoint switch work.
-      const recorded = await matchWrite(method, u.pathname, init);
+      const recorded = await matchWrite(method, backendPath(u.pathname), init);
       if (recorded) {
         timelineStopped = true;
         note('replaying the backend\'s recorded response — nothing real changed');
@@ -284,7 +314,7 @@
     }
 
     #start() {
-      const path = new URL(this.url, location.href).pathname;
+      const path = backendPath(new URL(this.url, location.href).pathname);
       const recording = (fixtures.ws ?? []).find((w) => w.url === path) ?? (fixtures.ws ?? [])[0];
       this.readyState = DemoWebSocket.OPEN;
       this.#emit('open', new Event('open'));
@@ -330,8 +360,48 @@
     };
   }
 
+  // ---- images -------------------------------------------------------------
+
+  /**
+   * Media thumbnails and the like are `<img src>`, which the browser fetches
+   * itself — `fetch` is never called, so the interception above can't see them
+   * and every thumbnail 404s. Any image whose URL matches a recorded binary
+   * response is swapped for that recording inline.
+   *
+   * Done here rather than by writing the bytes out as files because those URLs
+   * have no file extension: a static host would serve them as
+   * application/octet-stream and leave the browser guessing.
+   */
+  function hydrateImages(root) {
+    if (!root || typeof root.querySelectorAll !== 'function') return;
+    const images = root.tagName === 'IMG' ? [root] : [...root.querySelectorAll('img[src]')];
+    for (const img of images) {
+      if (img.dataset.demoHydrated) continue;
+      let url;
+      try { url = new URL(img.getAttribute('src'), location.href); } catch { continue; }
+      if (url.origin !== location.origin) continue;
+      const rec = lookup(`GET ${backendPath(url.pathname)}${url.search}`);
+      if (!rec?.base64) continue;
+      img.dataset.demoHydrated = '1';
+      img.src = `data:${rec.contentType};base64,${rec.base64}`;
+    }
+  }
+
+  function watchImages() {
+    hydrateImages(document.body);
+    new MutationObserver((records) => {
+      for (const record of records) {
+        if (record.type === 'attributes') hydrateImages(record.target);
+        else record.addedNodes.forEach((node) => hydrateImages(node));
+      }
+    }).observe(document.body, {
+      childList: true, subtree: true, attributes: true, attributeFilter: ['src'],
+    });
+  }
+
   load.then(() => {
-    if (document.body) banner();
-    else document.addEventListener('DOMContentLoaded', banner, { once: true });
+    const start = () => { banner(); watchImages(); };
+    if (document.body) start();
+    else document.addEventListener('DOMContentLoaded', start, { once: true });
   });
 })();

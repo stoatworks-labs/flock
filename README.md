@@ -19,7 +19,7 @@ group at once.
 
 ## Try the UI
 
-**<https://stoatworks-labs.com/flock/>** — flock's real web UI, click-through, in
+**<https://flock.stoatworks-labs.com>** — flock's real web UI, click-through, in
 your browser. It replays responses recorded from flock running against its three
 seeded `device-mock` devices, so what you see is output flock actually produced.
 
