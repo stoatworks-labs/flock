@@ -3,7 +3,5 @@
 config/flock.toml
 dist-release/
 
-# Hosted-demo build output
-demo/dist/
 data/registry-demo.json
 data/app_settings-demo.json

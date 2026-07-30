@@ -2,7 +2,7 @@
 
 flock controls BirdDog PLAY units over the LAN, so it can't be hosted in any
 useful sense — a page on the public internet has no devices to talk to. What is
-hosted at <https://stoatworks-labs.com/flock/> is a **click-through demo**:
+hosted at <https://flock.stoatworks-labs.com> is a **click-through demo**:
 flock's real, unmodified web UI, replaying responses recorded from flock itself
 running against its own simulated devices (`crates/device-mock`).
 
@@ -17,9 +17,9 @@ mocked up in the design sense, and nothing is live.
 | `record-fixtures.mjs` | Records a running backend's responses (vendored, shared across repos) |
 | `demo-shim.js` | Intercepts `fetch`/`WebSocket` in the page and replays the recording (vendored) |
 | `build-demo.sh` | Assembles `crates/web/static` + shim + fixtures into a publishable site (vendored) |
-| `serve-demo.py` | Serves the built site with GitHub Pages' headers, for local checking (vendored) |
-| `deploy-pages.sh` | Pushes the built site to the `gh-pages` branch (vendored) |
+| `serve-demo.py` | Serves the built site with a static host's headers, for local checking (vendored) |
 | `demo-fixtures.json` | The recording. Regenerate it; don't hand-edit it |
+| `dist/` | **Committed build output** — what Cloudflare Pages serves |
 
 The vendored files come from `stoatworks-backend/pages-demo`. Fix them there
 and copy out, or the copies drift.
@@ -28,9 +28,13 @@ and copy out, or the copies drift.
 
 ```bash
 demo/record-demo.sh                                  # record + assemble
-demo/serve-demo.py --dir demo/dist --base /flock/    # check it locally first
-demo/deploy-pages.sh --dist demo/dist --label "flock demo"
+demo/serve-demo.py --dir demo/dist    # check it locally first
+git add demo/dist && git commit && git push   # Cloudflare publishes it
 ```
+
+Cloudflare Pages publishes `demo/dist` from the repo with **no build command**.
+It has to be committed: assembling the demo means running the app against its
+mock devices and capturing what it says, which a build container can't do.
 
 ## Rules the demo has to keep
 
