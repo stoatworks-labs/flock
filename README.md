@@ -310,6 +310,20 @@ Full plan in [docs/roadmap.md](docs/roadmap.md). Next up:
 - [ ] **Subscribe to the real device's live status WebSocket** instead of polling `/dashboard`.
 - [ ] **Real live video preview** — an actual NDI/SRT frame grab (currently a placeholder).
 
+## Control it from Companion
+
+[**companion-module-flock**](https://github.com/stoatworks-labs/companion-module-flock) is a [Bitfocus Companion](https://bitfocus.io/companion) connection module for this app.
+
+Changes what any decoder is playing, **takes a source to every decoder carrying
+a tag**, reboots and manages fleet membership — with a monitor tile per decoder.
+
+Its group feedback lights only when *every* member landed on the source, not
+when most did, and a decoder that stops answering is shown as offline rather
+than holding its last reading.
+
+It is not in the official Companion module store — install it via
+**Settings → Developer modules path**.
+
 ## Trademarks and third-party licences
 
 **NDI® is a registered trademark of Vizrt NDI AB.** See <https://ndi.video>.
