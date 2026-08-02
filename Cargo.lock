@@ -530,6 +530,7 @@ dependencies = [
  "anyhow",
  "axum",
  "flock-core",
+ "flock-device-mock",
  "flock-discovery",
  "serde",
  "serde_json",
