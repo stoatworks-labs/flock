@@ -38,6 +38,6 @@ tower-http = { version = "0.6", features = ["fs", "trace"] }
 uuid = { version = "1", features = ["v4", "serde"] }
 mdns-sd = "0.11"
 reqwest = { version = "0.12", default-features = false, features = ["cookies", "rustls-tls", "multipart"] }
-scraper = "0.20"
+scraper = "0.27"
 aes-gcm = "0.10"
 tokio-stream = "0.1"
