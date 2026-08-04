@@ -29,11 +29,11 @@ group at once.
 | Build | Download | Size |
 | --- | --- | --- |
 | Apple Silicon · .dmg disk image (CLI) | [`flock-0.1.3-macos-aarch64-cli.dmg`](https://github.com/stoatworks-labs/flock/releases/download/v0.1.3/flock-0.1.3-macos-aarch64-cli.dmg) | 4.2 MB |
-| Intel · .dmg disk image (CLI) | [`flock-0.1.3-macos-x86_64-cli.dmg`](https://github.com/stoatworks-labs/flock/releases/download/v0.1.3/flock-0.1.3-macos-x86_64-cli.dmg) | 4.3 MB |
-| .dmg disk image (app) | [`flock-0.1.3-macos-app.dmg`](https://github.com/stoatworks-labs/flock/releases/download/v0.1.3/flock-0.1.3-macos-app.dmg) | 7.5 MB |
-| Apple Silicon · .pkg installer (CLI) | [`flock-0.1.3-macos-aarch64-cli.pkg`](https://github.com/stoatworks-labs/flock/releases/download/v0.1.3/flock-0.1.3-macos-aarch64-cli.pkg) | 3.7 MB |
-| Intel · .pkg installer (CLI) | [`flock-0.1.3-macos-x86_64-cli.pkg`](https://github.com/stoatworks-labs/flock/releases/download/v0.1.3/flock-0.1.3-macos-x86_64-cli.pkg) | 3.8 MB |
-| .pkg installer (app) | [`flock-0.1.3-macos-app.pkg`](https://github.com/stoatworks-labs/flock/releases/download/v0.1.3/flock-0.1.3-macos-app.pkg) | 6.8 MB |
+| Intel · .dmg disk image (CLI) | [`flock-0.1.3-macos-x86_64-cli.dmg`](https://github.com/stoatworks-labs/flock/releases/download/v0.1.3/flock-0.1.3-macos-x86_64-cli.dmg) | 4.4 MB |
+| .dmg disk image (app) | [`flock-0.1.3-macos-app.dmg`](https://github.com/stoatworks-labs/flock/releases/download/v0.1.3/flock-0.1.3-macos-app.dmg) | 6.7 MB |
+| Apple Silicon · .pkg installer (CLI) | [`flock-0.1.3-macos-aarch64-cli.pkg`](https://github.com/stoatworks-labs/flock/releases/download/v0.1.3/flock-0.1.3-macos-aarch64-cli.pkg) | 3.6 MB |
+| Intel · .pkg installer (CLI) | [`flock-0.1.3-macos-x86_64-cli.pkg`](https://github.com/stoatworks-labs/flock/releases/download/v0.1.3/flock-0.1.3-macos-x86_64-cli.pkg) | 3.9 MB |
+| .pkg installer (app) | [`flock-0.1.3-macos-app.pkg`](https://github.com/stoatworks-labs/flock/releases/download/v0.1.3/flock-0.1.3-macos-app.pkg) | 6.7 MB |
 | Apple Silicon · .tar.gz archive | [`flock-macos-aarch64.tar.gz`](https://github.com/stoatworks-labs/flock/releases/latest/download/flock-macos-aarch64.tar.gz) | 3.7 MB |
 | Intel · .tar.gz archive | [`flock-macos-x86_64.tar.gz`](https://github.com/stoatworks-labs/flock/releases/latest/download/flock-macos-x86_64.tar.gz) | 3.8 MB |
 
@@ -70,7 +70,7 @@ group at once.
 
 All builds, checksums and release notes: [github.com/stoatworks-labs/flock/releases](https://github.com/stoatworks-labs/flock/releases).
 
-These builds are unsigned, so macOS and Windows each warn once on first launch — see [Unsigned builds — Gatekeeper, SmartScreen & Defender Firewall](#unsigned-builds--gatekeeper-smartscreen--defender-firewall) for the one-time fix.
+macOS builds are signed and notarised and open normally. The Windows builds are unsigned, so SmartScreen warns once — see [Windows SmartScreen & Defender Firewall](#windows-smartscreen--defender-firewall) for the one-time click-through.
 
 <!-- downloads:end -->
 
