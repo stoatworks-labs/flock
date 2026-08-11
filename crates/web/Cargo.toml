@@ -16,3 +16,6 @@ anyhow.workspace = true
 tracing.workspace = true
 uuid.workspace = true
 tokio-stream.workspace = true
+
+[dev-dependencies]
+flock-device-mock = { path = "../device-mock" }
