@@ -25,7 +25,11 @@ async fn handle_socket(mut socket: WebSocket, state: AppState) {
             }
         };
         if last_sent.as_deref() != Some(snapshot.as_str()) {
-            if socket.send(Message::Text(snapshot.clone())).await.is_err() {
+            if socket
+                .send(Message::Text(snapshot.clone().into()))
+                .await
+                .is_err()
+            {
                 break;
             }
             last_sent = Some(snapshot);

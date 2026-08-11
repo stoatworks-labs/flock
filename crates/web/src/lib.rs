@@ -36,24 +36,24 @@ pub fn app(state: AppState) -> Router {
         .route("/ws", get(ws::ws_handler))
         .route("/api/devices", post(handlers::create_device))
         .route(
-            "/api/devices/:id",
+            "/api/devices/{id}",
             put(handlers::update_device).delete(handlers::delete_device),
         )
-        .route("/api/devices/:id/status", get(handlers::get_status))
+        .route("/api/devices/{id}/status", get(handlers::get_status))
         .route(
-            "/api/devices/:id/network",
+            "/api/devices/{id}/network",
             get(handlers::get_network).post(handlers::set_network),
         )
         .route(
-            "/api/devices/:id/decode",
+            "/api/devices/{id}/decode",
             get(handlers::get_decode).post(handlers::set_decode),
         )
         .route(
-            "/api/devices/:id/system",
+            "/api/devices/{id}/system",
             get(handlers::get_system).post(handlers::set_system),
         )
-        .route("/api/devices/:id/reboot", post(handlers::reboot_device))
-        .route("/api/devices/:id/preview", get(preview::get_preview))
+        .route("/api/devices/{id}/reboot", post(handlers::reboot_device))
+        .route("/api/devices/{id}/preview", get(preview::get_preview))
         .route("/api/discovery/scan", get(handlers::scan_discovery))
         .route("/api/ndi/sources", get(handlers::get_ndi_sources))
         .route(
@@ -65,7 +65,7 @@ pub fn app(state: AppState) -> Router {
             post(handlers::push_discovery_server),
         )
         .route(
-            "/api/groups/:tag/:tab",
+            "/api/groups/{tag}/{tab}",
             post(handlers::apply_group_settings),
         )
         .route_layer(middleware::from_fn_with_state(
