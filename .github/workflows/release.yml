@@ -119,7 +119,7 @@ jobs:
           rl_dmg "${{ matrix.name }}-cli" "$stage"
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: flock-${{ matrix.name }}
           path: |
@@ -273,7 +273,7 @@ jobs:
           cp *.dmg *.pkg launcher-out/ 2>/dev/null || true
           ls -l launcher-out || true
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: flock-launcher-${{ matrix.name }}
           path: launcher-out/*
@@ -319,7 +319,7 @@ jobs:
           done
           ls -l installers
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: flock-windows-installers
           path: installers/*
