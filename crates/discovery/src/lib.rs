@@ -73,12 +73,18 @@ impl Discovery {
             }
             match tokio::time::timeout(remaining, receiver.recv_async()).await {
                 Ok(Ok(ServiceEvent::ServiceResolved(info))) => {
-                    if let Some(ip) = info.get_addresses_v4().into_iter().next() {
+                    if let Some(ip) = info
+                        .addresses
+                        .iter()
+                        .filter(|a| a.is_ipv4())
+                        .map(|a| a.to_ip_addr())
+                        .next()
+                    {
                         // get_fullname() is "Instance Name._ndi._tcp.local." -
                         // strip the service-type suffix so this matches the
                         // plain instance name BirdUI/NDI tools show (and
                         // that a Play's own :8080/List keys its map by).
-                        let suffix = format!(".{}", info.get_type());
+                        let suffix = format!(".{}", info.ty_domain);
                         let name = info
                             .get_fullname()
                             .strip_suffix(&suffix)
