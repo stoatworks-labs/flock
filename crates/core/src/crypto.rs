@@ -36,7 +36,8 @@ impl CredentialCipher {
                 key_path.display(),
                 bytes.len()
             );
-            *Key::<Aes256Gcm>::from_slice(&bytes)
+            Key::<Aes256Gcm>::try_from(bytes.as_slice())
+                .map_err(|_| anyhow::anyhow!("{} is not a valid 32-byte key", key_path.display()))?
         } else {
             let key = Key::<Aes256Gcm>::generate();
             if let Some(parent) = key_path.parent() {
@@ -89,9 +90,11 @@ impl CredentialCipher {
             "malformed encrypted credential: wrong nonce length"
         );
         let ciphertext = decode_hex(ct_hex)?;
+        let nonce = Nonce::try_from(nonce_bytes.as_slice())
+            .map_err(|_| anyhow::anyhow!("malformed encrypted credential: wrong nonce length"))?;
         let plaintext = self
             .cipher
-            .decrypt(Nonce::from_slice(&nonce_bytes), ciphertext.as_ref())
+            .decrypt(&nonce, ciphertext.as_ref())
             .map_err(|_| {
                 anyhow::anyhow!(
                     "failed to decrypt a stored credential - wrong or missing credentials.key?"
