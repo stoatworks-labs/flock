@@ -39,5 +39,5 @@ uuid = { version = "1", features = ["v4", "serde"] }
 mdns-sd = "0.21"
 reqwest = { version = "0.12", default-features = false, features = ["cookies", "rustls-tls", "multipart"] }
 scraper = "0.27"
-aes-gcm = "0.10"
+aes-gcm = "0.11"
 tokio-stream = "0.1"
