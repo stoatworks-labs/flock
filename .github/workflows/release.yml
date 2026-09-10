@@ -24,15 +24,19 @@ jobs:
           - { name: linux-aarch64,   os: ubuntu-24.04-arm, target: aarch64-unknown-linux-gnu,  pkgarch: arm64 }
           - { name: windows-x86_64,  os: windows-latest,   target: x86_64-pc-windows-msvc }
           - { name: windows-aarch64, os: windows-11-arm,   target: aarch64-pc-windows-msvc }
-          - { name: macos-x86_64,    os: macos-14,         target: x86_64-apple-darwin }
-          - { name: macos-aarch64,   os: macos-14,         target: aarch64-apple-darwin }
+          # Both arches already built on this one runner, so they are merged
+          # into a single universal binary rather than published as two
+          # downloads. `target2` is the second triple to build and lipo in;
+          # universal-apple-darwin is a Tauri bundling target, not a cargo one,
+          # so this cannot be expressed by changing `target` — cargo rejects it.
+          - { name: macos-universal, os: macos-14,         target: aarch64-apple-darwin, target2: x86_64-apple-darwin }
     steps:
       - uses: actions/checkout@v7
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.target }}
+          targets: ${{ matrix.target2 && format('{0},{1}', matrix.target, matrix.target2) || matrix.target }}
 
       - uses: Swatinem/rust-cache@v2
         with:
@@ -51,6 +55,10 @@ jobs:
       - name: Build (release)
         run: cargo build --release --target ${{ matrix.target }} --bins
 
+      - name: Build (release, second macOS arch)
+        if: matrix.target2 != ''
+        run: cargo build --release --target ${{ matrix.target2 }} --bins
+
       - name: Stage binaries
         shell: bash
         env:
@@ -59,9 +67,37 @@ jobs:
           mkdir -p dist
           ext=""
           [[ "${{ matrix.target }}" == *windows* ]] && ext=".exe"
+          t2="${{ matrix.target2 }}"
           for b in $BINS; do
-            cp "target/${{ matrix.target }}/release/${b}${ext}" "dist/${b}${ext}"
+            if [ -n "$t2" ]; then
+              # One binary that runs on both Macs, instead of one download each.
+              lipo -create \
+                "target/${{ matrix.target }}/release/${b}" \
+                "target/$t2/release/${b}" \
+                -output "dist/${b}"
+            else
+              cp "target/${{ matrix.target }}/release/${b}${ext}" "dist/${b}${ext}"
+            fi
           done
+          # Assert it, do not assume it: a lipo that silently produced a thin
+          # binary would ship as "universal" and fail on half the Macs that
+          # downloaded it. Captured and matched with `case`, never piped into
+          # grep -- under `bash -eo pipefail` grep exiting on its first match
+          # SIGPIPEs the writer and fails the step BECAUSE the match was found.
+          if [ -n "$t2" ]; then
+            for b in $BINS; do
+              __archs="$( lipo -archs "dist/${b}" )"
+              echo "dist/${b}: $__archs"
+              case "$__archs" in
+                *arm64*) ;;
+                *) echo "expected an arm64 slice in $b, got: $__archs" >&2; exit 1 ;;
+              esac
+              case "$__archs" in
+                *x86_64*) ;;
+                *) echo "expected an x86_64 slice in $b, got: $__archs" >&2; exit 1 ;;
+              esac
+            done
+          fi
           ls -la dist
 
       - name: Package .deb and .rpm (Linux only)
@@ -143,7 +179,13 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { name: macos,   os: macos-14,       target: aarch64-apple-darwin,     bundles: app }
+          # Was aarch64-apple-darwin only, and published as `-macos-app` with
+          # no architecture in the name — so an Intel Mac downloaded a bundle it
+          # could not launch. universal-apple-darwin builds both slices and
+          # lipos them. `rust_targets` is what rustup installs, because
+          # universal-apple-darwin is a Tauri bundling target and not a rustup
+          # one; `target` stays what tauri build is given.
+          - { name: macos,   os: macos-14,       target: universal-apple-darwin,   rust_targets: 'aarch64-apple-darwin,x86_64-apple-darwin', bundles: app }
           - { name: linux,   os: ubuntu-latest,  target: x86_64-unknown-linux-gnu, bundles: 'deb,appimage' }
           - { name: windows, os: windows-latest, target: x86_64-pc-windows-msvc,   bundles: 'nsis,msi' }
     steps:
@@ -156,7 +198,7 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.target }}
+          targets: ${{ matrix.rust_targets || matrix.target }}
 
       - uses: Swatinem/rust-cache@v2
         with:
@@ -185,15 +227,29 @@ jobs:
         # without an extension, so Windows needs the .exe copied under BOTH
         # spellings or the bundler fails on the missing resource path.
         run: |
-          cargo build --release --target ${{ matrix.target }} -p flock
           mkdir -p launcher/src-tauri/bin
           # `cond && cmd` as a bare line is a trap here: Actions runs bash with
           # set -e, so a false condition returns non-zero and kills the step.
           # Use if/fi for anything that is legitimately optional.
           ext=""
           if [[ "${{ matrix.target }}" == *windows* ]]; then ext=".exe"; fi
-          src="target/${{ matrix.target }}/release/flock${ext}"
-          cp "$src" "launcher/src-tauri/bin/flock${ext}"
+          # cargo has no universal-apple-darwin target, so the universal case
+          # builds both real triples and lipos them. The binary INSIDE the app
+          # has to be universal too: a fat wrapper around a thin server would
+          # launch on an Intel Mac and then fail the moment it started its own
+          # server, which is worse than not shipping for Intel at all.
+          if [ "${{ matrix.target }}" = "universal-apple-darwin" ]; then
+            cargo build --release --target aarch64-apple-darwin -p flock
+            cargo build --release --target x86_64-apple-darwin -p flock
+            lipo -create \
+              target/aarch64-apple-darwin/release/flock \
+              target/x86_64-apple-darwin/release/flock \
+              -output "launcher/src-tauri/bin/flock"
+          else
+            cargo build --release --target ${{ matrix.target }} -p flock
+            src="target/${{ matrix.target }}/release/flock${ext}"
+            cp "$src" "launcher/src-tauri/bin/flock${ext}"
+          fi
           if [ -f config/example.toml ]; then
             cp config/example.toml launcher/src-tauri/bin/server-config.toml
           fi
@@ -243,6 +299,44 @@ jobs:
           npm install --no-audit --no-fund
           npx --no-install tauri build \
             --target ${{ matrix.target }} --bundles ${{ matrix.bundles }}
+
+      # Proof that "universal" is universal. A build that lost a slice looks
+      # identical in the log, and this bundle's name carries no architecture at
+      # all, so nothing downstream would reveal it either.
+      #
+      # Captured and matched with `case`, never piped into grep: steps run as
+      # `bash -eo pipefail`, so grep exiting at its first match SIGPIPEs lipo
+      # and fails the step BECAUSE the match was found.
+      - name: Verify the macOS launcher is universal
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          appdir="launcher/src-tauri/target/${{ matrix.target }}/release/bundle/macos"
+          app="flock.app"
+          [ -d "$appdir/$app" ] || { echo "no .app produced" >&2; exit 1; }
+          # EVERY Mach-O in the bundle, not just Contents/MacOS/<exe>: this app
+          # ships the flock server as a resource, and a fat wrapper around a
+          # thin server is still broken on half the Macs that download it.
+          found=0
+          while IFS= read -r f; do
+            __archs="$( lipo -archs "$f" 2>/dev/null )" || continue
+            [ -n "$__archs" ] || continue
+            found=$((found+1))
+            echo "${f#$appdir/$app/}: $__archs"
+            case "$__archs" in
+              *arm64*) ;;
+              *) echo "expected an arm64 slice in $f, got: $__archs" >&2; exit 1 ;;
+            esac
+            case "$__archs" in
+              *x86_64*) ;;
+              *) echo "expected an x86_64 slice in $f, got: $__archs" >&2; exit 1 ;;
+            esac
+          done < <(find "$appdir/$app" -type f -perm -u+x)
+          # A find that matched nothing would pass every check above in silence.
+          if [ "$found" -lt 2 ]; then
+            echo "expected at least the app binary and the embedded server, found $found" >&2
+            exit 1
+          fi
 
       - name: Installers (macOS launcher)
         if: runner.os == 'macOS'
