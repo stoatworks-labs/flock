@@ -21,17 +21,17 @@ group at once.
 
 ## Download
 
-**[v0.2.4](https://github.com/stoatworks-labs/flock/releases/tag/v0.2.4)** — prebuilt for macOS, Windows and Linux. Pick your platform:
+**[v0.2.5](https://github.com/stoatworks-labs/flock/releases/tag/v0.2.5)** — prebuilt for macOS, Windows and Linux. Pick your platform:
 
 <details>
 <summary><b>macOS</b> — Universal (Apple Silicon + Intel)</summary>
 
 | Build | Download | Size |
 | --- | --- | --- |
-| Universal (Apple Silicon + Intel) · .dmg disk image (CLI) | [`flock-0.2.4-macos-universal-cli.dmg`](https://github.com/stoatworks-labs/flock/releases/download/v0.2.4/flock-0.2.4-macos-universal-cli.dmg) | 8.4 MB |
-| .dmg disk image (app) | [`flock-0.2.4-macos-app.dmg`](https://github.com/stoatworks-labs/flock/releases/download/v0.2.4/flock-0.2.4-macos-app.dmg) | 16 MB |
-| Universal (Apple Silicon + Intel) · .pkg installer (CLI) | [`flock-0.2.4-macos-universal-cli.pkg`](https://github.com/stoatworks-labs/flock/releases/download/v0.2.4/flock-0.2.4-macos-universal-cli.pkg) | 7.7 MB |
-| .pkg installer (app) | [`flock-0.2.4-macos-app.pkg`](https://github.com/stoatworks-labs/flock/releases/download/v0.2.4/flock-0.2.4-macos-app.pkg) | 16 MB |
+| Universal (Apple Silicon + Intel) · .dmg disk image (CLI) | [`flock-0.2.5-macos-universal-cli.dmg`](https://github.com/stoatworks-labs/flock/releases/download/v0.2.5/flock-0.2.5-macos-universal-cli.dmg) | 8.4 MB |
+| .dmg disk image (app) | [`flock-0.2.5-macos-app.dmg`](https://github.com/stoatworks-labs/flock/releases/download/v0.2.5/flock-0.2.5-macos-app.dmg) | 16 MB |
+| Universal (Apple Silicon + Intel) · .pkg installer (CLI) | [`flock-0.2.5-macos-universal-cli.pkg`](https://github.com/stoatworks-labs/flock/releases/download/v0.2.5/flock-0.2.5-macos-universal-cli.pkg) | 7.7 MB |
+| .pkg installer (app) | [`flock-0.2.5-macos-app.pkg`](https://github.com/stoatworks-labs/flock/releases/download/v0.2.5/flock-0.2.5-macos-app.pkg) | 16 MB |
 | Universal (Apple Silicon + Intel) · .tar.gz archive | [`flock-macos-universal.tar.gz`](https://github.com/stoatworks-labs/flock/releases/latest/download/flock-macos-universal.tar.gz) | 7.7 MB |
 
 </details>
@@ -41,10 +41,10 @@ group at once.
 
 | Build | Download | Size |
 | --- | --- | --- |
-| x64 · .exe installer | [`flock-0.2.4-windows-x86_64-setup.exe`](https://github.com/stoatworks-labs/flock/releases/download/v0.2.4/flock-0.2.4-windows-x86_64-setup.exe) | 2.7 MB |
-| x64 · .exe installer | [`flock_0.2.4_x64-setup.exe`](https://github.com/stoatworks-labs/flock/releases/download/v0.2.4/flock_0.2.4_x64-setup.exe) | 4.9 MB |
-| ARM64 · .exe installer | [`flock-0.2.4-windows-aarch64-setup.exe`](https://github.com/stoatworks-labs/flock/releases/download/v0.2.4/flock-0.2.4-windows-aarch64-setup.exe) | 2.4 MB |
-| x64 · .msi installer | [`flock_0.2.4_x64_en-US.msi`](https://github.com/stoatworks-labs/flock/releases/download/v0.2.4/flock_0.2.4_x64_en-US.msi) | 7.5 MB |
+| x64 · .exe installer | [`flock-0.2.5-windows-x86_64-setup.exe`](https://github.com/stoatworks-labs/flock/releases/download/v0.2.5/flock-0.2.5-windows-x86_64-setup.exe) | 2.7 MB |
+| x64 · .exe installer | [`flock_0.2.5_x64-setup.exe`](https://github.com/stoatworks-labs/flock/releases/download/v0.2.5/flock_0.2.5_x64-setup.exe) | 4.9 MB |
+| ARM64 · .exe installer | [`flock-0.2.5-windows-aarch64-setup.exe`](https://github.com/stoatworks-labs/flock/releases/download/v0.2.5/flock-0.2.5-windows-aarch64-setup.exe) | 2.4 MB |
+| x64 · .msi installer | [`flock_0.2.5_x64_en-US.msi`](https://github.com/stoatworks-labs/flock/releases/download/v0.2.5/flock_0.2.5_x64_en-US.msi) | 7.5 MB |
 | x64 · .zip archive | [`flock-windows-x86_64.zip`](https://github.com/stoatworks-labs/flock/releases/latest/download/flock-windows-x86_64.zip) | 3.4 MB |
 | ARM64 · .zip archive | [`flock-windows-aarch64.zip`](https://github.com/stoatworks-labs/flock/releases/latest/download/flock-windows-aarch64.zip) | 3.2 MB |
 
@@ -55,11 +55,11 @@ group at once.
 
 | Build | Download | Size |
 | --- | --- | --- |
-| x64 · .deb package (Debian/Ubuntu) | [`flock_0.2.4_amd64.deb`](https://github.com/stoatworks-labs/flock/releases/download/v0.2.4/flock_0.2.4_amd64.deb) | 4.2 MB |
-| ARM64 · .deb package (Debian/Ubuntu) | [`flock_0.2.4_arm64.deb`](https://github.com/stoatworks-labs/flock/releases/download/v0.2.4/flock_0.2.4_arm64.deb) | 4.3 MB |
-| x64 · .rpm package (Fedora/RHEL) | [`flock-0.2.4-1.x86_64.rpm`](https://github.com/stoatworks-labs/flock/releases/download/v0.2.4/flock-0.2.4-1.x86_64.rpm) | 4.4 MB |
-| ARM64 · .rpm package (Fedora/RHEL) | [`flock-0.2.4-1.aarch64.rpm`](https://github.com/stoatworks-labs/flock/releases/download/v0.2.4/flock-0.2.4-1.aarch64.rpm) | 4.4 MB |
-| x64 · AppImage | [`flock_0.2.4_amd64.AppImage`](https://github.com/stoatworks-labs/flock/releases/download/v0.2.4/flock_0.2.4_amd64.AppImage) | 84 MB |
+| x64 · .deb package (Debian/Ubuntu) | [`flock_0.2.5_amd64.deb`](https://github.com/stoatworks-labs/flock/releases/download/v0.2.5/flock_0.2.5_amd64.deb) | 9.5 MB |
+| ARM64 · .deb package (Debian/Ubuntu) | [`flock_0.2.5_arm64.deb`](https://github.com/stoatworks-labs/flock/releases/download/v0.2.5/flock_0.2.5_arm64.deb) | 4.3 MB |
+| x64 · .rpm package (Fedora/RHEL) | [`flock-0.2.5-1.x86_64.rpm`](https://github.com/stoatworks-labs/flock/releases/download/v0.2.5/flock-0.2.5-1.x86_64.rpm) | 4.4 MB |
+| ARM64 · .rpm package (Fedora/RHEL) | [`flock-0.2.5-1.aarch64.rpm`](https://github.com/stoatworks-labs/flock/releases/download/v0.2.5/flock-0.2.5-1.aarch64.rpm) | 4.4 MB |
+| x64 · AppImage | [`flock_0.2.5_amd64.AppImage`](https://github.com/stoatworks-labs/flock/releases/download/v0.2.5/flock_0.2.5_amd64.AppImage) | 84 MB |
 | x64 · .tar.gz archive | [`flock-linux-x86_64.tar.gz`](https://github.com/stoatworks-labs/flock/releases/latest/download/flock-linux-x86_64.tar.gz) | 4.1 MB |
 | ARM64 · .tar.gz archive | [`flock-linux-aarch64.tar.gz`](https://github.com/stoatworks-labs/flock/releases/latest/download/flock-linux-aarch64.tar.gz) | 4.2 MB |
 
