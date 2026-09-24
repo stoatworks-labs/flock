@@ -20,6 +20,16 @@ Headers only, vendored so the backend compiles everywhere. The runtime is never 
 
 NDI is the video transport most of this fleet's users already run. Compiling against the headers without shipping the runtime keeps the licence intact and still gives every build the backend.
 
+### Tauri
+
+<https://tauri.app>  
+Licence: MIT or Apache-2.0  
+Copyright: The Tauri Programme within The Commons Conservancy
+
+A Cargo and npm dependency — of the app itself under src-tauri/, or of the desktop launcher under launcher/src-tauri/.
+
+Wraps a web front end in a native desktop app using the platform's own webview rather than a bundled browser, so the binary stays small.
+
 ### The Rust crate ecosystem
 
 <https://crates.io>  
