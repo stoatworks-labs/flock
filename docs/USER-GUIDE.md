@@ -42,7 +42,10 @@ Select a device and you get its tabs:
 | **Network** | Addressing, NDI transmit/receive method, multicast, discovery server |
 | **System** | Device-level settings |
 
-Plus **Reboot**, **Edit name / tags**, and a preview of the output.
+Plus **Reboot**, **Edit name / tags**, and a preview. It's live video when the device is decoding
+an SRT source in caller or rendezvous mode: flock pulls the same source itself, since the Play
+doesn't expose its HDMI output over the network, and that needs an `ffmpeg` with SRT input on the
+machine running flock. For an NDI source or an SRT listener, the box says why there's no picture.
 
 ![The Decode tab, where a device's NDI or SRT source is chosen.](screenshots/decode.png)
 

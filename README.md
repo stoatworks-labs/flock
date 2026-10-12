@@ -157,9 +157,9 @@ group with a shared template:
 
 ## Status
 
-**Phase 2 (current): validated against both a simulated and a real BirdDog
-PLAY.** `crates/device-mock` stands in for hardware for quick iteration and
-demos; `crates/device-http` is a real client, confirmed against an actual PLAY
+**Phase 3, hardening (current): validated against both a simulated and a real
+BirdDog PLAY.** `crates/device-mock` stands in for hardware for quick iteration
+and demos; `crates/device-http` is a real client, confirmed against an actual PLAY
 unit (firmware 1.0.18). The "Confirmed against real hardware" section of
 [docs/architecture.md](docs/architecture.md) spells out what that means, and
 its known limitations.
@@ -298,7 +298,6 @@ procedure: **[docs/UNSIGNED.md](docs/UNSIGNED.md)**.
 Full plan in [docs/roadmap.md](docs/roadmap.md). Next up:
 
 - [ ] **Subscribe to the real device's live status WebSocket** instead of polling `/dashboard`.
-- [ ] **Real live video preview**: an actual NDI/SRT frame grab (currently a placeholder).
 
 ## Control it from Companion
 
