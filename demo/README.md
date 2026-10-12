@@ -19,7 +19,7 @@ mocked up in the design sense, and nothing is live.
 | `build-demo.sh` | Assembles `crates/web/static` + shim + fixtures into a publishable site (vendored) |
 | `serve-demo.py` | Serves the built site with a static host's headers, for local checking (vendored) |
 | `demo-fixtures.json` | The recording. Regenerate it; don't hand-edit it |
-| `dist/` | **Committed build output** — what Cloudflare Pages serves |
+| `dist/` | **Committed build output** — what the Cloudflare Worker serves |
 
 The vendored files come from `stoatworks-backend/pages-demo`. Fix them there
 and copy out, or the copies drift.
@@ -32,7 +32,9 @@ demo/serve-demo.py --dir demo/dist    # check it locally first
 git add demo/dist && git commit && git push   # Cloudflare publishes it
 ```
 
-Cloudflare Pages publishes `demo/dist` from the repo with **no build command**.
+A push to `main` publishes it: `.github/workflows/deploy.yml` runs `wrangler deploy`,
+which uploads `demo/dist` as a static-assets Worker (`wrangler.toml`) with **no build
+command**.
 It has to be committed: assembling the demo means running the app against its
 mock devices and capturing what it says, which a build container can't do.
 

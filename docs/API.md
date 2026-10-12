@@ -7,10 +7,11 @@ flock serves a JSON HTTP API and a WebSocket. Configuration lives in a TOML file
 
 ## Authentication
 
-**Optional, and off by default.** With no `[web].admin_password` configured, flock behaves as
+**Optional, and off by default.** With no `admin_password` configured, flock behaves as
 a trusted-LAN-only tool with no login — its historical behaviour.
 
-Set `[web].admin_password` and **every route requires a valid session**, except:
+Set `admin_password` (a top-level key in the config file, not under a section) and **every
+route requires a valid session**, except:
 
 - the static frontend (`/`, `/app.js`, `/style.css`)
 - `/health`
@@ -118,6 +119,6 @@ what sits on disk.
 See `config/example.toml`.
 
 ```toml
-[web]
+# top level, not under a [section]
 # admin_password = "..."   # omit for no-auth trusted-LAN mode
 ```

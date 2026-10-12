@@ -106,8 +106,8 @@ Deliberately **not** done, and why:
       a sibling `credentials.key` file (chmod 600); a legacy plaintext
       registry.json still loads correctly and gets encrypted on its next
       save. See docs/architecture.md's "Credentials are encrypted at rest"
-      section. Doesn't change the trust model beyond disk-at-rest — flock
-      itself still has no auth (see below).
+      section. Doesn't change the trust model beyond disk-at-rest — flock's
+      own login is the separate, optional item below.
 - [x] **Real live video preview - SRT only, not NDI.** flock spawns
       `ffmpeg` to dial the same `srt://` endpoint a device's own decode
       source pulls from (only possible in `caller`/`rendezvous` mode - in

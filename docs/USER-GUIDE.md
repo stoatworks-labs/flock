@@ -76,8 +76,8 @@ machines, which is how a rig's show file gets from the office to site.
 
 By default flock has **no login**, on the assumption it's on a trusted production LAN.
 
-To require a password, set `admin_password` under `[web]` in the config. Then every page and API
-call needs a session. Two things to know:
+To require a password, set `admin_password` in the config file (`config/flock.toml`) as a
+top-level key, not under a `[section]`. Then every page and API call needs a session. Two things to know:
 
 - **Sessions live in memory only.** Restarting flock logs everyone out. That's intentional for a
   single-operator tool.

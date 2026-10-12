@@ -10,8 +10,8 @@ the app** — it's a single download, nothing to install or wire up.
 Download the `.dmg` from
 [Releases](https://github.com/stoatworks-labs/flock/releases).
 
-> **Unsigned build.** On first launch macOS Gatekeeper will block it —
-> right-click the app → **Open** → **Open**, once.
+> **Signed and notarised.** The macOS app is Developer ID-signed and notarised,
+> so it opens on a double-click; see [docs/UNSIGNED.md](../docs/UNSIGNED.md).
 
 ## What it does
 
