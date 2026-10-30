@@ -18,7 +18,7 @@ Rust fleet-control service (core + discovery + device adapters + web UI). Discov
 
 ## Notes
 - New device types implement the `core` device trait; use `device-mock` for tests without hardware.
-- Multi-platform release CI; cross-compile macOS x86_64 on macos-14 (never macos-13).
+- Multi-platform release CI; cross-compile macOS x86_64 on macos-15 (never macos-13).
 - "Commit" = commit **and** push.
 
 ## Diagnostics

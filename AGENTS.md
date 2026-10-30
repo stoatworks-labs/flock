@@ -79,7 +79,7 @@ log them, and don't move them into config files that get committed.
   Note the macOS Gatekeeper trap common to all av-launcher apps: for an unsigned `.app`
   bundling helper binaries, approving the app does **not** unquarantine its payload — the
   helpers get SIGKILLed silently.
-- Multi-platform release CI; cross-compile macOS x86_64 on `macos-14` — never `macos-13`.
+- Multi-platform release CI; cross-compile macOS x86_64 on `macos-15` — never `macos-13`.
 - "Commit" means commit **and** push.
 
 ## Diagnostics

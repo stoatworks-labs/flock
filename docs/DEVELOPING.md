@@ -121,6 +121,6 @@ Ships as its own desktop app via **av-launcher** (Tauri v2 tray shell, server em
 does **not** unquarantine the payload — helpers are SIGKILLed silently. It presents as "the
 app opens but the server never starts".
 
-Multi-platform release CI; cross-compile macOS x86_64 on **`macos-14`**, never `macos-13`.
+Multi-platform release CI; cross-compile macOS x86_64 on **`macos-15`**, never `macos-13`.
 
 "Commit" means commit **and** push.
