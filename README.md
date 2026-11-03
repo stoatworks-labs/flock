@@ -15,6 +15,8 @@ Play units on the LAN (or you add them by hand), tags each into as many groups a
 shows every BirdUI setting for a device in one flat, tabbed view, and pushes a setting to a
 whole group at once.
 
+The [project page](https://stoatworks-labs.com/software/flock/) has the downloads, the [user guide](https://stoatworks-labs.com/software/flock/guide/), the video and a demo you can click around in the browser.
+
 <!-- downloads:start -->
 
 ## Download
