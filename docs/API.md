@@ -75,6 +75,9 @@ is never returned once stored.
 | `GET` | `/api/discovery/scan` | Scan the network for devices |
 | `GET` | `/api/ndi/sources` | Available NDI sources |
 
+With `provider = "mock"` both answer from canned, simulated results and don't touch the
+network; only `provider = "http"` scans the real subnet and browses real mDNS.
+
 ---
 
 ## Settings

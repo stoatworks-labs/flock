@@ -13,7 +13,7 @@ fn router_builds_without_panicking() {
             .unwrap(),
         ),
         provider: Arc::new(flock_device_mock::MockClientProvider::new()),
-        discovery: Arc::new(flock_discovery::Discovery::new().unwrap()),
+        discovery: Arc::new(flock_discovery::Discovery::mock()),
         app_settings: Arc::new(
             flock_core::AppSettingsStore::load_or_new(
                 std::env::temp_dir().join("flock-smoke-settings.json"),

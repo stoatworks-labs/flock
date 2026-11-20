@@ -39,15 +39,7 @@ async fn main() -> anyhow::Result<()> {
         }
     }
 
-    let provider: Arc<dyn flock_core::DeviceClientProvider> = match config.provider.as_str() {
-        "http" => {
-            tracing::warn!(
-                "using the real HTTP device provider - see docs/architecture.md for what's confirmed/unconfirmed"
-            );
-            Arc::new(flock_device_http::HttpClientProvider::new())
-        }
-        _ => Arc::new(MockClientProvider::new()),
-    };
+    let (provider, discovery) = backends(&config.provider)?;
 
     let app_settings =
         flock_core::AppSettingsStore::load_or_new(config.app_settings_path.clone().into())?;
@@ -59,7 +51,7 @@ async fn main() -> anyhow::Result<()> {
     let state = AppState {
         registry: Arc::new(registry),
         provider,
-        discovery: Arc::new(Discovery::new()?),
+        discovery: Arc::new(discovery),
         app_settings: Arc::new(app_settings),
         admin_password: config.admin_password.clone(),
         sessions: Arc::new(std::sync::RwLock::new(std::collections::HashSet::new())),
@@ -71,4 +63,57 @@ async fn main() -> anyhow::Result<()> {
     tracing::info!(bind = %config.bind, "flock listening");
     axum::serve(listener, app).await?;
     Ok(())
+}
+
+/// The device provider and the discovery source, picked together from
+/// `Config::provider` so they always agree: real hardware gets the real
+/// network, and the simulated Plays get simulated discovery rather than
+/// whatever the machine running flock can see (a mock-mode scan used to
+/// sweep the real subnet and browse real mDNS - which the hosted demo then
+/// recorded and published).
+fn backends(
+    provider: &str,
+) -> anyhow::Result<(Arc<dyn flock_core::DeviceClientProvider>, Discovery)> {
+    Ok(match provider {
+        "http" => {
+            tracing::warn!(
+                "using the real HTTP device provider - see docs/architecture.md for what's confirmed/unconfirmed"
+            );
+            (
+                Arc::new(flock_device_http::HttpClientProvider::new()),
+                Discovery::new()?,
+            )
+        }
+        _ => {
+            tracing::info!(
+                "using simulated devices and simulated discovery - nothing on the network is scanned"
+            );
+            (Arc::new(MockClientProvider::new()), Discovery::mock())
+        }
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::backends;
+
+    #[test]
+    fn http_discovers_on_the_real_network() {
+        let (_, discovery) = backends("http").unwrap();
+        assert!(!discovery.is_mock());
+    }
+
+    #[test]
+    fn mock_discovery_goes_with_the_mock_provider() {
+        let (_, discovery) = backends("mock").unwrap();
+        assert!(discovery.is_mock());
+    }
+
+    #[test]
+    fn anything_but_http_stays_simulated() {
+        // The device provider has always fallen back to the mock for an
+        // unknown value; discovery has to fall back the same way.
+        let (_, discovery) = backends("htttp").unwrap();
+        assert!(discovery.is_mock());
+    }
 }

@@ -12,7 +12,7 @@
       "body": {
         "devices": [
           {
-            "id": "a66ab376-5805-4e7f-9a53-df96c7832cb3",
+            "id": "f6b73083-04db-493a-8570-c801a6092952",
             "name": "Backup Feed Play",
             "host": "birddog-backup.local",
             "tags": [
@@ -25,7 +25,7 @@
             "discovered": false
           },
           {
-            "id": "83afc3b3-a0b5-4425-9292-4423fbc2a1bb",
+            "id": "4beb3dc0-0f8b-4ac2-94fa-7a8571e82694",
             "name": "Lobby Play",
             "host": "birddog-lobby.local",
             "tags": [
@@ -37,7 +37,7 @@
             "discovered": false
           },
           {
-            "id": "e6178822-403a-4ba4-8698-e08001cd06d0",
+            "id": "c9dba324-21c0-40ef-8311-dcfd9d6d3ef5",
             "name": "Stage Cam Play",
             "host": "birddog-stage.local",
             "tags": [
@@ -52,17 +52,17 @@
         ],
         "groups": {
           "backup": [
-            "a66ab376-5805-4e7f-9a53-df96c7832cb3"
+            "f6b73083-04db-493a-8570-c801a6092952"
           ],
           "lobby": [
-            "83afc3b3-a0b5-4425-9292-4423fbc2a1bb"
+            "4beb3dc0-0f8b-4ac2-94fa-7a8571e82694"
           ],
           "primary": [
-            "e6178822-403a-4ba4-8698-e08001cd06d0"
+            "c9dba324-21c0-40ef-8311-dcfd9d6d3ef5"
           ],
           "stage": [
-            "a66ab376-5805-4e7f-9a53-df96c7832cb3",
-            "e6178822-403a-4ba4-8698-e08001cd06d0"
+            "c9dba324-21c0-40ef-8311-dcfd9d6d3ef5",
+            "f6b73083-04db-493a-8570-c801a6092952"
           ]
         }
       }
@@ -70,15 +70,42 @@
     "GET /api/discovery/scan": {
       "status": 200,
       "contentType": "application/json",
-      "body": []
+      "body": [
+        {
+          "name": "192.168.100.41",
+          "host": "192.168.100.41",
+          "port": 80
+        },
+        {
+          "name": "192.168.100.42",
+          "host": "192.168.100.42",
+          "port": 80
+        }
+      ]
     },
     "GET /api/ndi/sources": {
       "status": 200,
       "contentType": "application/json",
       "body": [
         {
-          "name": "MAC (macOS AV Output)",
-          "address": "10.37.129.2:5961"
+          "name": "CAM-1 (Stage Left)",
+          "address": "192.168.100.21:5961"
+        },
+        {
+          "name": "CAM-2 (Stage Right)",
+          "address": "192.168.100.22:5961"
+        },
+        {
+          "name": "GFX (Lower Thirds)",
+          "address": "192.168.100.31:5961"
+        },
+        {
+          "name": "PLAYBACK (Preview)",
+          "address": "192.168.100.32:5962"
+        },
+        {
+          "name": "PLAYBACK (Program)",
+          "address": "192.168.100.32:5961"
         }
       ]
     },
@@ -89,7 +116,7 @@
         "discovery_server": null
       }
     },
-    "GET /api/devices/a66ab376-5805-4e7f-9a53-df96c7832cb3/status": {
+    "GET /api/devices/f6b73083-04db-493a-8570-c801a6092952/status": {
       "status": 200,
       "contentType": "application/json",
       "body": {
@@ -104,7 +131,7 @@
         "system_name": "backup-feed-play"
       }
     },
-    "GET /api/devices/83afc3b3-a0b5-4425-9292-4423fbc2a1bb/status": {
+    "GET /api/devices/4beb3dc0-0f8b-4ac2-94fa-7a8571e82694/status": {
       "status": 200,
       "contentType": "application/json",
       "body": {
@@ -119,7 +146,7 @@
         "system_name": "lobby-play"
       }
     },
-    "GET /api/devices/e6178822-403a-4ba4-8698-e08001cd06d0/status": {
+    "GET /api/devices/c9dba324-21c0-40ef-8311-dcfd9d6d3ef5/status": {
       "status": 200,
       "contentType": "application/json",
       "body": {
@@ -134,7 +161,7 @@
         "system_name": "stage-cam-play"
       }
     },
-    "GET /api/devices/a66ab376-5805-4e7f-9a53-df96c7832cb3/network": {
+    "GET /api/devices/f6b73083-04db-493a-8570-c801a6092952/network": {
       "status": 200,
       "contentType": "application/json",
       "body": {
@@ -155,7 +182,7 @@
         "ndi_discovery_server_ips": []
       }
     },
-    "GET /api/devices/83afc3b3-a0b5-4425-9292-4423fbc2a1bb/network": {
+    "GET /api/devices/4beb3dc0-0f8b-4ac2-94fa-7a8571e82694/network": {
       "status": 200,
       "contentType": "application/json",
       "body": {
@@ -176,7 +203,7 @@
         "ndi_discovery_server_ips": []
       }
     },
-    "GET /api/devices/e6178822-403a-4ba4-8698-e08001cd06d0/network": {
+    "GET /api/devices/c9dba324-21c0-40ef-8311-dcfd9d6d3ef5/network": {
       "status": 200,
       "contentType": "application/json",
       "body": {
@@ -197,7 +224,7 @@
         "ndi_discovery_server_ips": []
       }
     },
-    "GET /api/devices/a66ab376-5805-4e7f-9a53-df96c7832cb3/decode": {
+    "GET /api/devices/f6b73083-04db-493a-8570-c801a6092952/decode": {
       "status": 200,
       "contentType": "application/json",
       "body": {
@@ -221,7 +248,7 @@
         "tally_mode": "TallyOff"
       }
     },
-    "GET /api/devices/83afc3b3-a0b5-4425-9292-4423fbc2a1bb/decode": {
+    "GET /api/devices/4beb3dc0-0f8b-4ac2-94fa-7a8571e82694/decode": {
       "status": 200,
       "contentType": "application/json",
       "body": {
@@ -245,7 +272,7 @@
         "tally_mode": "TallyOff"
       }
     },
-    "GET /api/devices/e6178822-403a-4ba4-8698-e08001cd06d0/decode": {
+    "GET /api/devices/c9dba324-21c0-40ef-8311-dcfd9d6d3ef5/decode": {
       "status": 200,
       "contentType": "application/json",
       "body": {
@@ -269,7 +296,7 @@
         "tally_mode": "TallyOff"
       }
     },
-    "GET /api/devices/a66ab376-5805-4e7f-9a53-df96c7832cb3/system": {
+    "GET /api/devices/f6b73083-04db-493a-8570-c801a6092952/system": {
       "status": 200,
       "contentType": "application/json",
       "body": {
@@ -278,7 +305,7 @@
         "ndi_group_list": []
       }
     },
-    "GET /api/devices/83afc3b3-a0b5-4425-9292-4423fbc2a1bb/system": {
+    "GET /api/devices/4beb3dc0-0f8b-4ac2-94fa-7a8571e82694/system": {
       "status": 200,
       "contentType": "application/json",
       "body": {
@@ -287,7 +314,7 @@
         "ndi_group_list": []
       }
     },
-    "GET /api/devices/e6178822-403a-4ba4-8698-e08001cd06d0/system": {
+    "GET /api/devices/c9dba324-21c0-40ef-8311-dcfd9d6d3ef5/system": {
       "status": 200,
       "contentType": "application/json",
       "body": {
@@ -296,17 +323,17 @@
         "ndi_group_list": []
       }
     },
-    "GET /api/devices/a66ab376-5805-4e7f-9a53-df96c7832cb3/preview": {
+    "GET /api/devices/f6b73083-04db-493a-8570-c801a6092952/preview": {
       "status": 501,
       "contentType": "text/plain; charset=utf-8",
       "body": "Live preview is only available for SRT decode sources - NDI would need the proprietary NDI SDK, which flock deliberately doesn't bundle (see docs/architecture.md's \"NDI source routing model\" section)."
     },
-    "GET /api/devices/83afc3b3-a0b5-4425-9292-4423fbc2a1bb/preview": {
+    "GET /api/devices/4beb3dc0-0f8b-4ac2-94fa-7a8571e82694/preview": {
       "status": 501,
       "contentType": "text/plain; charset=utf-8",
       "body": "Live preview is only available for SRT decode sources - NDI would need the proprietary NDI SDK, which flock deliberately doesn't bundle (see docs/architecture.md's \"NDI source routing model\" section)."
     },
-    "GET /api/devices/e6178822-403a-4ba4-8698-e08001cd06d0/preview": {
+    "GET /api/devices/c9dba324-21c0-40ef-8311-dcfd9d6d3ef5/preview": {
       "status": 501,
       "contentType": "text/plain; charset=utf-8",
       "body": "Live preview is only available for SRT decode sources - NDI would need the proprietary NDI SDK, which flock deliberately doesn't bundle (see docs/architecture.md's \"NDI source routing model\" section)."
@@ -318,7 +345,7 @@
       "frames": [
         {
           "dt": 2,
-          "data": "{\"devices\":[{\"id\":\"a66ab376-5805-4e7f-9a53-df96c7832cb3\",\"name\":\"Backup Feed Play\",\"host\":\"birddog-backup.local\",\"tags\":[\"stage\",\"backup\"],\"credentials\":{\"password\":\"********\"},\"discovered\":false},{\"id\":\"83afc3b3-a0b5-4425-9292-4423fbc2a1bb\",\"name\":\"Lobby Play\",\"host\":\"birddog-lobby.local\",\"tags\":[\"lobby\"],\"credentials\":{\"password\":\"********\"},\"discovered\":false},{\"id\":\"e6178822-403a-4ba4-8698-e08001cd06d0\",\"name\":\"Stage Cam Play\",\"host\":\"birddog-stage.local\",\"tags\":[\"stage\",\"primary\"],\"credentials\":{\"password\":\"********\"},\"discovered\":false}],\"groups\":{\"backup\":[\"a66ab376-5805-4e7f-9a53-df96c7832cb3\"],\"lobby\":[\"83afc3b3-a0b5-4425-9292-4423fbc2a1bb\"],\"primary\":[\"e6178822-403a-4ba4-8698-e08001cd06d0\"],\"stage\":[\"a66ab376-5805-4e7f-9a53-df96c7832cb3\",\"e6178822-403a-4ba4-8698-e08001cd06d0\"]}}"
+          "data": "{\"devices\":[{\"id\":\"f6b73083-04db-493a-8570-c801a6092952\",\"name\":\"Backup Feed Play\",\"host\":\"birddog-backup.local\",\"tags\":[\"stage\",\"backup\"],\"credentials\":{\"password\":\"********\"},\"discovered\":false},{\"id\":\"4beb3dc0-0f8b-4ac2-94fa-7a8571e82694\",\"name\":\"Lobby Play\",\"host\":\"birddog-lobby.local\",\"tags\":[\"lobby\"],\"credentials\":{\"password\":\"********\"},\"discovered\":false},{\"id\":\"c9dba324-21c0-40ef-8311-dcfd9d6d3ef5\",\"name\":\"Stage Cam Play\",\"host\":\"birddog-stage.local\",\"tags\":[\"stage\",\"primary\"],\"credentials\":{\"password\":\"********\"},\"discovered\":false}],\"groups\":{\"backup\":[\"f6b73083-04db-493a-8570-c801a6092952\"],\"lobby\":[\"4beb3dc0-0f8b-4ac2-94fa-7a8571e82694\"],\"primary\":[\"c9dba324-21c0-40ef-8311-dcfd9d6d3ef5\"],\"stage\":[\"c9dba324-21c0-40ef-8311-dcfd9d6d3ef5\",\"f6b73083-04db-493a-8570-c801a6092952\"]}}"
         }
       ]
     }

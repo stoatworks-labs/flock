@@ -37,6 +37,7 @@ crates/
     crypto.rs      Credential handling
   discovery/     Device discovery
     subnet_probe.rs
+    mock.rs        Simulated scan + NDI sources for provider = "mock"
   device-http/   HTTP device adapter (the real BirdDog path)
     form.rs        BirdUI form handling
   device-mock/   Mock device - use this for tests without hardware

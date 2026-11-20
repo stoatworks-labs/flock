@@ -4,7 +4,9 @@ flock controls BirdDog PLAY units over the LAN, so it can't be hosted in any
 useful sense — a page on the public internet has no devices to talk to. What is
 hosted at <https://flock-demo.stoatworks-labs.com> is a **click-through demo**:
 flock's real, unmodified web UI, replaying responses recorded from flock itself
-running against its own simulated devices (`crates/device-mock`).
+running against its own simulated devices (`crates/device-mock`) and simulated
+discovery (`crates/discovery/src/mock.rs`), so the recording carries nothing from
+the network it was made on.
 
 Everything you see there is output flock actually produced. Nothing is
 mocked up in the design sense, and nothing is live.

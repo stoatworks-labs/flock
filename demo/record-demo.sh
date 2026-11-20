@@ -3,14 +3,14 @@
 # Rebuild flock's hosted demo end to end.
 #
 # Runs flock against its own simulated Play devices (config/demo.toml, which
-# sets provider = "mock"), records what that backend actually returns, and
-# assembles the demo site from flock's real, unmodified UI plus the recording.
+# sets provider = "mock", so the network scan and NDI source list are simulated
+# too), records what that backend actually returns, and assembles the demo site
+# from flock's real, unmodified UI plus the recording.
 #
 # The point of recording rather than hand-writing fixtures: the demo then shows
 # what flock does, not what someone remembers it doing. Re-run this whenever the
-# API or the UI changes, then publish with:
-#
-#   demo/deploy-pages.sh --dist demo/dist --label "flock demo"
+# API or the UI changes, then commit demo/demo-fixtures.json and demo/dist and
+# push to main: .github/workflows/deploy.yml publishes demo/dist from there.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -57,5 +57,5 @@ demo/build-demo.sh \
   --out demo/dist
 
 echo
-echo "Preview it exactly as Pages will serve it:"
-echo "  demo/serve-demo.py --dir demo/dist --base /flock/"
+echo "Preview it the way the site serves it (from /):"
+echo "  demo/serve-demo.py --dir demo/dist"

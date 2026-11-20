@@ -24,6 +24,12 @@ actually reached.
 - **`DeviceClientProvider`** (trait) — resolves a `Device` to its
   `DeviceClient`. The binary picks the provider at startup from
   `Config::provider` (`"mock"` or `"http"`).
+- **`Discovery`** (`crates/discovery`) — the network scan for Plays and the
+  NDI source list. It follows the same switch: `"http"` sweeps the real
+  subnet and browses real mDNS, while `"mock"` answers from canned hosts and
+  NDI sources (`crates/discovery/src/mock.rs`) and touches no network, so
+  simulated devices never get mixed up with whatever the machine running
+  flock can see.
 
 ## Credentials are encrypted at rest, transparently
 
